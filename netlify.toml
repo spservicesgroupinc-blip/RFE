@@ -1,19 +1,19 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  environment = {
-    NETLIFY_NEXT_PLUGIN_SKIP = true
-  }
 
 [build.environment]
   NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
+# Proxy API requests to Netlify Functions
 [[redirects]]
   from = "/api/*"
-  to = "/api/index.js"
+  to = "/.netlify/functions/api"
   status = 200
 
+# Handle SPA routing (must be last)
 [[redirects]]
   from = "/*"
-  to = "index.html"
+  to = "/index.html"
   status = 200
+  force = true
