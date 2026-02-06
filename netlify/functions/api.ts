@@ -334,23 +334,29 @@ async function handleSyncUp(payload: any, token: string) {
 }
 
 async function reconcileEstimates(companyId: string, incomingEstimates: any[]) {
+    console.error(`[DEBUG] Reconciling ${incomingEstimates.length} estimates for ${companyId}`);
     // Fetch existing
     const existingRows = await sql`SELECT * FROM estimates WHERE company_id = ${companyId}`;
+    console.error(`[DEBUG] Found ${existingRows.length} existing estimates in DB`);
+
     const dbMap = new Map();
     existingRows.forEach((r: any) => {
-        // r.data is the full object
-        // merge with top level ID just in case
         const obj = { ...r.data, id: r.id };
         dbMap.set(r.id, obj);
     });
 
     for (const incoming of incomingEstimates) {
-        if (!incoming.id) continue;
+        if (!incoming.id) {
+            console.error(`[DEBUG] Skipping estimate without ID`);
+            continue;
+        }
 
+        console.error(`[DEBUG] Processing estimate ${incoming.id}`);
         let finalEst = incoming;
         const existing = dbMap.get(incoming.id);
 
         if (existing) {
+            console.error(`[DEBUG] Merging existing estimate ${incoming.id}`);
             // Merge Logic mimicking GAS
             if (existing.executionStatus === 'Completed' && incoming.executionStatus !== 'Completed') {
                 finalEst.executionStatus = 'Completed';
@@ -373,26 +379,31 @@ async function reconcileEstimates(companyId: string, incomingEstimates: any[]) {
         }
 
         // Upsert
-        await sql`
-            INSERT INTO estimates (id, company_id, customer_id, date, status, execution_status, total_value, data)
-            VALUES (
-                ${finalEst.id}, 
-                ${companyId}, 
-                NULL, 
-                ${finalEst.date ? new Date(finalEst.date) : null}, 
-                ${finalEst.status || 'Draft'}, 
-                ${finalEst.executionStatus || 'Not Started'}, 
-                ${finalEst.totalValue || 0}, 
-                ${JSON.stringify(finalEst)}
-            )
-            ON CONFLICT (id) DO UPDATE SET
-                date = EXCLUDED.date,
-                status = EXCLUDED.status,
-                execution_status = EXCLUDED.execution_status,
-                total_value = EXCLUDED.total_value,
-                data = EXCLUDED.data,
-                updated_at = NOW()
-        `;
+        try {
+            await sql`
+                INSERT INTO estimates (id, company_id, customer_id, date, status, execution_status, total_value, data)
+                VALUES (
+                    ${finalEst.id}, 
+                    ${companyId}, 
+                    NULL, 
+                    ${finalEst.date ? new Date(finalEst.date) : null}, 
+                    ${finalEst.status || 'Draft'}, 
+                    ${finalEst.executionStatus || 'Not Started'}, 
+                    ${finalEst.totalValue || 0}, 
+                    ${JSON.stringify(finalEst)}
+                )
+                ON CONFLICT (id) DO UPDATE SET
+                    date = EXCLUDED.date,
+                    status = EXCLUDED.status,
+                    execution_status = EXCLUDED.execution_status,
+                    total_value = EXCLUDED.total_value,
+                    data = EXCLUDED.data,
+                    updated_at = NOW()
+            `;
+            console.error(`[DEBUG] Upserted estimate ${finalEst.id} successfully`);
+        } catch (err: any) {
+            console.error(`[DEBUG] Error upserting estimate ${finalEst.id}:`, err);
+        }
     }
 }
 
