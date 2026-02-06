@@ -37,6 +37,16 @@ export default async (req: Request) => {
                 data = await handleLogin(payload);
                 break;
 
+            case 'CREW_LOGIN':
+                data = await handleCrewLogin(payload);
+                break;
+
+            case 'SUBMIT_TRIAL':
+                // Just log it for now
+                console.log(`[TRIAL] New lead: ${JSON.stringify(payload)}`);
+                data = { success: true };
+                break;
+
             case 'SYNC_DOWN':
                 if (!payload.token) throw new Error("Missing token");
                 data = await handleSyncDown(payload, payload.token);
@@ -45,6 +55,27 @@ export default async (req: Request) => {
             case 'SYNC_UP':
                 if (!payload.token) throw new Error("Missing token");
                 data = await handleSyncUp(payload, payload.token);
+                break;
+
+            case 'DELETE_ESTIMATE':
+                if (!payload.token) throw new Error("Missing token");
+                await handleDeleteEstimate(payload, payload.token);
+                data = { success: true };
+                break;
+
+            case 'MARK_JOB_PAID':
+                if (!payload.token) throw new Error("Missing token");
+                data = await handleMarkJobPaid(payload, payload.token);
+                break;
+
+            case 'CREATE_WORK_ORDER':
+                if (!payload.token) throw new Error("Missing token");
+                data = await handleCreateWorkOrder(payload, payload.token);
+                break;
+
+            case 'COMPLETE_JOB':
+                if (!payload.token) throw new Error("Missing token");
+                data = await handleCompleteJob(payload, payload.token);
                 break;
 
             default:
@@ -410,3 +441,96 @@ async function reconcileEstimates(companyId: string, incomingEstimates: any[]) {
 export const config = {
     path: "/api/*"
 };
+
+async function handleCrewLogin(p: any) {
+    const { username, pin } = p;
+    // For now, checks hardcoded PIN or user field crew_pin
+    // If username provided, look up user
+    // If just generic crew login, maybe simple check
+
+    // Strategy: Look up user by username (owner account) and check if pin matches their crew_pin
+    // OR if we have crew accounts.
+    // Based on schemas, it seems 'users' table has 'crew_pin'. 
+
+    const users = await sql`SELECT * FROM users WHERE username = ${username}`;
+    if (users.length === 0) throw new Error("Company not found");
+    const user = users[0];
+
+    if (user.crew_pin !== pin) throw new Error("Invalid Crew PIN");
+
+    // Return session as crew
+    return {
+        username: user.username,
+        companyName: user.company_name,
+        role: 'crew',
+        token: generateToken(user.username, 'crew'), // Limited scope token
+        spreadsheetId: "NEON_DB",
+        folderId: "NEON_DRIVE"
+    };
+}
+
+async function handleDeleteEstimate(p: any, token: string) {
+    const user = await getUserFromToken(token);
+    const { estimateId } = p;
+    // Verify ownership
+    await sql`DELETE FROM estimates WHERE id = ${estimateId} AND company_id = ${user.id}`;
+}
+
+async function handleMarkJobPaid(p: any, token: string) {
+    const user = await getUserFromToken(token);
+    const { estimateId } = p;
+
+    // Fetch estimate
+    const rows = await sql`SELECT * FROM estimates WHERE id = ${estimateId} AND company_id = ${user.id}`;
+    if (rows.length === 0) throw new Error("Estimate not found");
+
+    let est = rows[0];
+    let data = est.data;
+
+    // Update status
+    data.status = 'Paid';
+    // Add financials if needed (mocking logic from GAS)
+    // For P&L, we might need cost data. 
+    // Let's assume P&L calculation happens here or we just save the status.
+
+    // Refetched to ensure we have latest
+    await sql`
+        UPDATE estimates 
+        SET status = 'Paid', 
+            data = ${JSON.stringify(data)},
+            updated_at = NOW()
+        WHERE id = ${estimateId}
+    `;
+
+    return { success: true, estimate: { ...data, id: estimateId, status: 'Paid' } };
+}
+
+async function handleCreateWorkOrder(p: any, token: string) {
+    // Stub - since we are migrating away from Sheets, we might not truly create a Sheet.
+    // Or we returns a placeholder URL.
+    return { url: "https://placeholder-work-order-url.com" };
+}
+
+async function handleCompleteJob(p: any, token: string) {
+    const user = await getUserFromToken(token);
+    const { estimateId, actuals } = p;
+
+    const rows = await sql`SELECT * FROM estimates WHERE id = ${estimateId} AND company_id = ${user.id}`;
+    if (rows.length === 0) throw new Error("Estimate not found");
+
+    let est = rows[0];
+    let data = est.data;
+
+    data.executionStatus = 'Completed';
+    data.actuals = actuals;
+
+    await sql`
+        UPDATE estimates 
+        SET execution_status = 'Completed', 
+            data = ${JSON.stringify(data)},
+            updated_at = NOW()
+        WHERE id = ${estimateId}
+    `;
+
+    return { success: true };
+}
