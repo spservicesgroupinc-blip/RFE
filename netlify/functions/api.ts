@@ -38,12 +38,13 @@ export default async (req: Request) => {
                 break;
 
             case 'SYNC_DOWN':
-                // payload.token should be present if sent by client, or we extract from header? 
-                // GAS app sends everything in payload usually. 
-                // We'll check payload.token first.
-                // Assuming client sends { action: 'SYNC_DOWN', payload: { token: '...' } }
                 if (!payload.token) throw new Error("Missing token");
                 data = await handleSyncDown(payload, payload.token);
+                break;
+
+            case 'SYNC_UP':
+                if (!payload.token) throw new Error("Missing token");
+                data = await handleSyncUp(payload, payload.token);
                 break;
 
             default:
@@ -266,6 +267,133 @@ async function handleSyncDown(payload: any, token: string) {
         customers,
         materialLogs
     };
+}
+
+async function handleSyncUp(payload: any, token: string) {
+    const user = await getUserFromToken(token);
+    const companyId = user.id;
+    const { state } = payload;
+
+    // 1. Settings (Profile, Costs, etc)
+    const settingsKeys = ['companyProfile', 'yields', 'costs', 'expenses', 'jobNotes', 'purchaseOrders', 'sqFtRates', 'pricingMode', 'lifetimeUsage'];
+    const settingsUpdates: any[] = [];
+
+    settingsKeys.forEach(key => {
+        if (state[key] !== undefined) {
+            settingsUpdates.push({ key, value: state[key] });
+        }
+    });
+
+    if (state.warehouse) {
+        settingsUpdates.push({
+            key: 'warehouse_counts',
+            value: { openCellSets: state.warehouse.openCellSets, closedCellSets: state.warehouse.closedCellSets }
+        });
+    }
+
+    if (settingsUpdates.length > 0) {
+        for (const s of settingsUpdates) {
+            // Upsert Settings
+            await sql`
+                INSERT INTO settings (company_id, key, value)
+                VALUES (${companyId}, ${s.key}, ${JSON.stringify(s.value)})
+                ON CONFLICT (company_id, key) 
+                DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+             `;
+        }
+    }
+
+    // 2. Inventory (Replace All strategy as per legacy)
+    if (state.warehouse && state.warehouse.items && Array.isArray(state.warehouse.items)) {
+        await sql`DELETE FROM inventory WHERE company_id = ${companyId}`;
+        for (const item of state.warehouse.items) {
+            await sql`
+                INSERT INTO inventory (company_id, name, quantity, data)
+                VALUES (${companyId}, ${item.name || "Item"}, ${item.quantity || 0}, ${JSON.stringify(item)})
+             `;
+        }
+    }
+
+    // 3. Customers (Replace All strategy)
+    if (state.customers && Array.isArray(state.customers)) {
+        await sql`DELETE FROM customers WHERE company_id = ${companyId}`;
+        for (const c of state.customers) {
+            await sql`
+                INSERT INTO customers (company_id, name, email, status, data)
+                VALUES (${companyId}, ${c.name || ""}, ${c.email || ""}, ${c.status || "Active"}, ${JSON.stringify(c)})
+             `;
+        }
+    }
+
+    // 4. Estimates (Reconciliation Logic)
+    if (state.savedEstimates && Array.isArray(state.savedEstimates)) {
+        await reconcileEstimates(companyId, state.savedEstimates);
+    }
+
+    return { synced: true };
+}
+
+async function reconcileEstimates(companyId: string, incomingEstimates: any[]) {
+    // Fetch existing
+    const existingRows = await sql`SELECT * FROM estimates WHERE company_id = ${companyId}`;
+    const dbMap = new Map();
+    existingRows.forEach((r: any) => {
+        // r.data is the full object
+        // merge with top level ID just in case
+        const obj = { ...r.data, id: r.id };
+        dbMap.set(r.id, obj);
+    });
+
+    for (const incoming of incomingEstimates) {
+        if (!incoming.id) continue;
+
+        let finalEst = incoming;
+        const existing = dbMap.get(incoming.id);
+
+        if (existing) {
+            // Merge Logic mimicking GAS
+            if (existing.executionStatus === 'Completed' && incoming.executionStatus !== 'Completed') {
+                finalEst.executionStatus = 'Completed';
+                finalEst.actuals = existing.actuals;
+            }
+            if (existing.executionStatus === 'Completed' && incoming.executionStatus === 'Completed') {
+                const existingDate = new Date(existing.actuals?.completionDate || 0).getTime();
+                const incomingDate = new Date(incoming.actuals?.completionDate || 0).getTime();
+                if (existingDate > incomingDate) finalEst.actuals = existing.actuals;
+            }
+            if (existing.executionStatus === 'In Progress' && incoming.executionStatus === 'Not Started') {
+                finalEst.executionStatus = 'In Progress';
+            }
+            if (existing.status === 'Paid' && incoming.status !== 'Paid') {
+                finalEst.status = 'Paid';
+            }
+            // Preserve server-side generated fields if missing in incoming
+            if (existing.pdfLink && !incoming.pdfLink) finalEst.pdfLink = existing.pdfLink;
+            if (existing.workOrderSheetUrl && !incoming.workOrderSheetUrl) finalEst.workOrderSheetUrl = existing.workOrderSheetUrl;
+        }
+
+        // Upsert
+        await sql`
+            INSERT INTO estimates (id, company_id, customer_id, date, status, execution_status, total_value, data)
+            VALUES (
+                ${finalEst.id}, 
+                ${companyId}, 
+                NULL, 
+                ${finalEst.date ? new Date(finalEst.date) : null}, 
+                ${finalEst.status || 'Draft'}, 
+                ${finalEst.executionStatus || 'Not Started'}, 
+                ${finalEst.totalValue || 0}, 
+                ${JSON.stringify(finalEst)}
+            )
+            ON CONFLICT (id) DO UPDATE SET
+                date = EXCLUDED.date,
+                status = EXCLUDED.status,
+                execution_status = EXCLUDED.execution_status,
+                total_value = EXCLUDED.total_value,
+                data = EXCLUDED.data,
+                updated_at = NOW()
+        `;
+    }
 }
 
 export const config = {

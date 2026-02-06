@@ -85,9 +85,60 @@ async function testAuth() {
 
     if (syncData.status === 'success' && syncData.data.warehouse) {
         console.log('SYNC_DOWN Verification PASSED');
-        console.log('Warehouse Data:', syncData.data.warehouse);
     } else {
         console.error('SYNC_DOWN Verification FAILED', syncData);
+        process.exit(1);
+    }
+
+    console.log('--- Testing SYNC_UP ---');
+    const syncUpPayload = {
+        action: 'SYNC_UP',
+        payload: {
+            token: token,
+            state: {
+                // Mock State
+                companyProfile: { companyName: 'Neon Corp' },
+                savedEstimates: [
+                    { id: 'est_123', status: 'Draft', totalValue: 5000, date: new Date().toISOString() }
+                ],
+                warehouse: {
+                    openCellSets: 10,
+                    closedCellSets: 5,
+                    items: [
+                        { id: 'inv_1', name: 'Spray Gun', quantity: 2 }
+                    ]
+                }
+            }
+        }
+    };
+
+    // @ts-ignore
+    const upReq = new MockRequest('POST', syncUpPayload);
+    // @ts-ignore
+    const upRes = await api(upReq);
+    const upData = await upRes.json();
+    console.log('SYNC_UP Response:', upData);
+
+    if (upData.status !== 'success') {
+        console.error('SYNC_UP Failed');
+        process.exit(1);
+    }
+
+    // Verify persistence by syncing down again
+    console.log('--- Verifying Persistence (SYNC_DOWN 2) ---');
+    // @ts-ignore
+    const downReq2 = new MockRequest('POST', { action: 'SYNC_DOWN', payload: { token } });
+    // @ts-ignore
+    const downRes2 = await api(downReq2);
+    const downData2 = await downRes2.json();
+
+    const est = downData2.data.savedEstimates.find((e: any) => e.id === 'est_123');
+    const inv = downData2.data.warehouse.items.find((i: any) => i.name === 'Spray Gun');
+
+    if (est && inv && parseFloat(inv.quantity) === 2) {
+        console.log('Persistence Verification PASSED');
+    } else {
+        console.error('Persistence Verification FAILED', { est, inv });
         process.exit(1);
     }
 }
