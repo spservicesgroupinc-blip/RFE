@@ -1,4 +1,4 @@
-import { Pool } from '@neondatabase/serverless';
+import { neon } from '@netlify/neon';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,11 +9,7 @@ if (!connectionString) {
     console.warn('DATABASE_URL environment variable is not defined');
 }
 
-// Configured for Neon Serverless
-// max: 10 - Prevent exhausting serverless compute resources (Neon loves pooling!)
-// idleTimeoutMillis: 30000 - Close idle clients to save resources
-export const pool = new Pool({
-    connectionString,
-    max: 10,
-    idleTimeoutMillis: 30000
-});
+// Configured for Neon Serverless via @netlify/neon
+// This automatically handles connection pooling at the edge if available, or direct connection.
+// It prioritizes NETLIFY_DATABASE_URL if present, otherwise falls back to the passed connection string.
+export const sql = neon(connectionString);
