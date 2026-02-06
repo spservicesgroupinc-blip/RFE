@@ -65,6 +65,31 @@ async function testAuth() {
         console.error('Login Verification FAILED');
         process.exit(1);
     }
+
+    const token = loginData.data.token;
+    console.log('--- Testing SYNC_DOWN ---');
+    const syncPayload = {
+        action: 'SYNC_DOWN',
+        payload: {
+            token: token
+        }
+    };
+
+    // @ts-ignore
+    const syncReq = new MockRequest('POST', syncPayload);
+    // @ts-ignore
+    const syncRes = await api(syncReq);
+    const syncData = await syncRes.json();
+
+    // console.log('Sync Response:', JSON.stringify(syncData, null, 2));
+
+    if (syncData.status === 'success' && syncData.data.warehouse) {
+        console.log('SYNC_DOWN Verification PASSED');
+        console.log('Warehouse Data:', syncData.data.warehouse);
+    } else {
+        console.error('SYNC_DOWN Verification FAILED', syncData);
+        process.exit(1);
+    }
 }
 
 testAuth();

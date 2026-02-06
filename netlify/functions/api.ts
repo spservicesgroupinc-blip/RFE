@@ -37,6 +37,15 @@ export default async (req: Request) => {
                 data = await handleLogin(payload);
                 break;
 
+            case 'SYNC_DOWN':
+                // payload.token should be present if sent by client, or we extract from header? 
+                // GAS app sends everything in payload usually. 
+                // We'll check payload.token first.
+                // Assuming client sends { action: 'SYNC_DOWN', payload: { token: '...' } }
+                if (!payload.token) throw new Error("Missing token");
+                data = await handleSyncDown(payload, payload.token);
+                break;
+
             default:
                 return new Response(JSON.stringify({ status: 'error', message: `Unknown action: ${action}` }), {
                     headers: { "Content-Type": "application/json" }
@@ -75,6 +84,35 @@ function generateToken(username: string, role: string): string {
     hmac.update(data);
     const signature = hmac.digest('base64');
     return Buffer.from(`${data}::${signature}`).toString('base64');
+}
+
+function validateToken(token: string) {
+    if (!token) return null;
+    try {
+        const decoded = Buffer.from(token, 'base64').toString('utf8');
+        const parts = decoded.split("::");
+        if (parts.length !== 2) return null;
+        const data = parts[0];
+        const signature = parts[1];
+
+        const hmac = crypto.createHmac('sha256', CONSTANTS.SECRET_SALT);
+        hmac.update(data);
+        const expectedSig = hmac.digest('base64');
+
+        if (signature !== expectedSig) return null;
+
+        const [user, role, expiry] = data.split(":");
+        if (new Date().getTime() > parseInt(expiry)) return null;
+        return { username: user, role: role };
+    } catch (e) { return null; }
+}
+
+async function getUserFromToken(token: string) {
+    const valid = validateToken(token);
+    if (!valid) throw new Error("Invalid Token");
+    const users = await sql`SELECT * FROM users WHERE username = ${valid.username}`;
+    if (users.length === 0) throw new Error("User not found");
+    return users[0];
 }
 
 // --- Action Handlers ---
@@ -159,6 +197,74 @@ async function handleLogin(p: any) {
         folderId: "NEON_DRIVE",
         role: user.role,
         token: generateToken(user.username, user.role)
+    };
+}
+
+async function handleSyncDown(payload: any, token: string) {
+    const user = await getUserFromToken(token);
+    const companyId = user.id;
+
+    // Fetch all data in parallel
+    const [settingsRows, invRows, estRows, custRows, logRows] = await Promise.all([
+        sql`SELECT * FROM settings WHERE company_id = ${companyId}`,
+        sql`SELECT * FROM inventory WHERE company_id = ${companyId}`,
+        sql`SELECT * FROM estimates WHERE company_id = ${companyId}`,
+        sql`SELECT * FROM customers WHERE company_id = ${companyId}`,
+        sql`SELECT * FROM material_logs WHERE company_id = ${companyId}`
+    ]);
+
+    // Transform Settings
+    const settings: any = {};
+    settingsRows.forEach((r: any) => {
+        settings[r.key] = r.value;
+    });
+
+    // Transform Inventory/Warehouse
+    const foamCounts = settings['warehouse_counts'] || { openCellSets: 0, closedCellSets: 0 };
+    const warehouse = {
+        openCellSets: foamCounts.openCellSets || 0,
+        closedCellSets: foamCounts.closedCellSets || 0,
+        items: invRows.map((r: any) => ({ ...r.data, id: r.id, name: r.name, quantity: r.quantity }))
+    };
+
+    // Transform Estimates
+    const savedEstimates = estRows.map((r: any) => ({
+        ...r.data,
+        id: r.id,
+        status: r.status,
+        executionStatus: r.execution_status,
+        totalValue: r.total_value,
+        date: r.date
+    }));
+
+    // Transform Customers
+    const customers = custRows.map((r: any) => ({
+        ...r.data,
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        status: r.status
+    }));
+
+    // Transform Logs
+    const materialLogs = logRows.map((r: any) => ({
+        ...r.data,
+        id: r.id,
+        date: r.date,
+        jobId: r.job_id
+    }));
+
+    const lifetimeUsage = settings['lifetime_usage'] || { openCell: 0, closedCell: 0 };
+    const equipment: any[] = [];
+
+    return {
+        ...settings,
+        warehouse,
+        lifetimeUsage,
+        equipment,
+        savedEstimates,
+        customers,
+        materialLogs
     };
 }
 
