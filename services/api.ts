@@ -3,19 +3,19 @@ import { GOOGLE_SCRIPT_URL, API_CONFIG } from '../constants';
 import { CalculatorState, EstimateRecord, UserSession } from '../types';
 
 interface ApiResponse {
-  status: 'success' | 'error';
-  data?: any;
-  message?: string;
+    status: 'success' | 'error';
+    data?: any;
+    message?: string;
 }
 
 /**
  * Helper to check if API is configured
  */
 const isApiConfigured = () => {
-  if (API_CONFIG.PROVIDER === 'NEON') {
-      return !!API_CONFIG.NEON_URL;
-  }
-  return GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('PLACEHOLDER');
+    if (API_CONFIG.PROVIDER === 'NEON') {
+        return !!API_CONFIG.NEON_URL;
+    }
+    return GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('PLACEHOLDER');
 };
 
 /**
@@ -37,7 +37,7 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
             headers: {
                 // strict text/plain for GAS to avoid CORS preflight (OPTIONS)
                 // standard application/json for Neon/Node
-                "Content-Type": API_CONFIG.PROVIDER === 'NEON' ? "application/json" : "text/plain;charset=utf-8", 
+                "Content-Type": API_CONFIG.PROVIDER === 'NEON' ? "application/json" : "text/plain;charset=utf-8",
             },
             body: JSON.stringify(payload)
         });
@@ -62,73 +62,73 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
 /**
  * Fetches the full application state from Google Sheets
  */
-export const syncDown = async (spreadsheetId: string): Promise<Partial<CalculatorState> | null> => {
-  const result = await apiRequest({ action: 'SYNC_DOWN', payload: { spreadsheetId } });
-  
-  if (result.status === 'success') {
-    return result.data;
-  } else {
-    console.error("Sync Down Error:", result.message);
-    return null;
-  }
+export const syncDown = async (spreadsheetId: string, token?: string): Promise<Partial<CalculatorState> | null> => {
+    const result = await apiRequest({ action: 'SYNC_DOWN', payload: { spreadsheetId, token } });
+
+    if (result.status === 'success') {
+        return result.data;
+    } else {
+        console.error("Sync Down Error:", result.message);
+        return null;
+    }
 };
 
 /**
  * Pushes the full application state to Google Sheets
  */
-export const syncUp = async (state: CalculatorState, spreadsheetId: string): Promise<boolean> => {
-  const result = await apiRequest({ action: 'SYNC_UP', payload: { state, spreadsheetId } });
-  return result.status === 'success';
+export const syncUp = async (state: CalculatorState, spreadsheetId: string, token?: string): Promise<boolean> => {
+    const result = await apiRequest({ action: 'SYNC_UP', payload: { state, spreadsheetId, token } });
+    return result.status === 'success';
 };
 
 /**
  * Marks job as paid and triggers P&L calculation on backend
  */
-export const markJobPaid = async (estimateId: string, spreadsheetId: string): Promise<{success: boolean, estimate?: EstimateRecord}> => {
-    const result = await apiRequest({ action: 'MARK_JOB_PAID', payload: { estimateId, spreadsheetId } });
+export const markJobPaid = async (estimateId: string, spreadsheetId: string, token?: string): Promise<{ success: boolean, estimate?: EstimateRecord }> => {
+    const result = await apiRequest({ action: 'MARK_JOB_PAID', payload: { estimateId, spreadsheetId, token } });
     return { success: result.status === 'success', estimate: result.data?.estimate };
 };
 
 /**
  * Creates a standalone Work Order Google Sheet
  */
-export const createWorkOrderSheet = async (estimateData: EstimateRecord, folderId: string | undefined, spreadsheetId: string): Promise<string | null> => {
-  const result = await apiRequest({ action: 'CREATE_WORK_ORDER', payload: { estimateData, folderId, spreadsheetId } });
-  if (result.status === 'success') return result.data.url;
-  console.error("Create WO Error:", result.message);
-  return null;
+export const createWorkOrderSheet = async (estimateData: EstimateRecord, folderId: string | undefined, spreadsheetId: string, token?: string): Promise<string | null> => {
+    const result = await apiRequest({ action: 'CREATE_WORK_ORDER', payload: { estimateData, folderId, spreadsheetId, token } });
+    if (result.status === 'success') return result.data.url;
+    console.error("Create WO Error:", result.message);
+    return null;
 };
 
 /**
  * Logs crew time to the Work Order Sheet
  */
-export const logCrewTime = async (workOrderUrl: string, startTime: string, endTime: string | null, user: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'LOG_TIME', payload: { workOrderUrl, startTime, endTime, user } });
+export const logCrewTime = async (workOrderUrl: string, startTime: string, endTime: string | null, user: string, token?: string): Promise<boolean> => {
+    const result = await apiRequest({ action: 'LOG_TIME', payload: { workOrderUrl, startTime, endTime, user, token } });
     return result.status === 'success';
 };
 
 /**
  * Marks job as complete and syncs inventory
  */
-export const completeJob = async (estimateId: string, actuals: any, spreadsheetId: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'COMPLETE_JOB', payload: { estimateId, actuals, spreadsheetId } });
+export const completeJob = async (estimateId: string, actuals: any, spreadsheetId: string, token?: string): Promise<boolean> => {
+    const result = await apiRequest({ action: 'COMPLETE_JOB', payload: { estimateId, actuals, spreadsheetId, token } });
     return result.status === 'success';
 };
 
 /**
  * Deletes an estimate and potentially its associated files
  */
-export const deleteEstimate = async (estimateId: string, spreadsheetId: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'DELETE_ESTIMATE', payload: { estimateId, spreadsheetId } });
+export const deleteEstimate = async (estimateId: string, spreadsheetId: string, token?: string): Promise<boolean> => {
+    const result = await apiRequest({ action: 'DELETE_ESTIMATE', payload: { estimateId, spreadsheetId, token } });
     return result.status === 'success';
 };
 
 /**
  * Uploads a PDF to Google Drive
  */
-export const savePdfToDrive = async (fileName: string, base64Data: string, estimateId: string | undefined, spreadsheetId: string, folderId?: string) => {
-  const result = await apiRequest({ action: 'SAVE_PDF', payload: { fileName, base64Data, estimateId, spreadsheetId, folderId } });
-  return result.status === 'success' ? result.data.url : null;
+export const savePdfToDrive = async (fileName: string, base64Data: string, estimateId: string | undefined, spreadsheetId: string, folderId?: string, token?: string) => {
+    const result = await apiRequest({ action: 'SAVE_PDF', payload: { fileName, base64Data, estimateId, spreadsheetId, folderId, token } });
+    return result.status === 'success' ? result.data.url : null;
 };
 
 /**
