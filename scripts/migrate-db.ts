@@ -1,10 +1,13 @@
-import { neon } from '@netlify/neon';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import ws from 'ws';
 
 dotenv.config();
+
+neonConfig.webSocketConstructor = ws;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +19,7 @@ if (!connectionString) {
     process.exit(1);
 }
 
-const sql = neon(connectionString);
+const pool = new Pool({ connectionString });
 
 async function migrate() {
     console.log('Starting database migration...');
@@ -27,17 +30,15 @@ async function migrate() {
 
         console.log(`Reading schema from: ${schemaPath}`);
 
-        // Split by semicolons simple approach, or just run as one block if supported
-        // Neon HTTP driver supports multi-statement queries in a single call usually,
-        // but splitting ensures better error reporting per statement if needed.
-        // For DDL, running as one block is often fine.
-
-        await sql(schemaSql);
+        // Execute the schema SQL
+        await pool.query(schemaSql);
 
         console.log('Migration completed successfully.');
-    } catch (error) {
+    } catch (error: any) {
         console.error('Migration failed:', error);
         process.exit(1);
+    } finally {
+        await pool.end();
     }
 }
 

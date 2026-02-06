@@ -1,33 +1,24 @@
+
 import { neon } from '@netlify/neon';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-    console.error('DATABASE_URL is missing');
-    process.exit(1);
-}
-
-const sql = neon(connectionString);
-
-async function verify() {
-    console.log('Verifying Neon connection...');
+async function checkConnection() {
+    const url = process.env.DATABASE_URL;
+    if (!url) {
+        console.error("❌ DATABASE_URL is missing!");
+        process.exit(1);
+    }
+    console.log("Found DATABASE_URL, attempting connection...");
     try {
-        const timeResult = await sql`SELECT NOW() as current_time`;
-        console.log('Connection successful! Server time:', timeResult[0].current_time);
-
-        const tables = await sql`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-            ORDER BY table_name;
-        `;
-
-        console.log('Current tables:', tables.map(t => t.table_name));
-
+        const sql = neon(url);
+        const result = await sql`SELECT version()`;
+        console.log("✅ Connection successful!");
+        console.log("Database Version:", result[0].version);
     } catch (err) {
-        console.error('Verification failed:', err);
+        console.error("❌ Connection failed:", err);
+        process.exit(1);
     }
 }
 
-verify();
+checkConnection();
