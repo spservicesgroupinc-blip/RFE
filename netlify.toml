@@ -1,17 +1,19 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  environment = {
+    NETLIFY_NEXT_PLUGIN_SKIP = true
+  }
 
 [build.environment]
   NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/api"
+  to = "/api/index.js"
   status = 200
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "index.html"
   status = 200
-  force = true
