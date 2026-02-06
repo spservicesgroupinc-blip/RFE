@@ -1,4 +1,4 @@
-import { pool } from "../../database/client";
+import { sql } from "../../database/client";
 
 export default async (req: Request) => {
     // CORS handling for local dev or cross-origin if needed
@@ -28,15 +28,17 @@ export default async (req: Request) => {
 
         switch (action) {
             case 'TEST':
-                const result = await pool.query('SELECT NOW() as time');
-                data = result.rows[0];
+                // neon sql tag returns array of rows directly
+                const result = await sql`SELECT NOW() as time`;
+                data = result[0];
                 break;
 
             // Example: Fetch Estimates
             // case 'FETCH_ESTIMATES':
-            //    const { companyId } = payload; // or from auth context
-            //    const records = await pool.query('SELECT * FROM estimates WHERE company_id = $1', [companyId]);
-            //    data = records.rows;
+            //    const { companyId } = payload;
+            //    // Tagged template automatically handles parameters securely
+            //    const records = await sql`SELECT * FROM estimates WHERE company_id = ${companyId}`;
+            //    data = records;
             //    break;
 
             default:
