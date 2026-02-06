@@ -27,7 +27,7 @@ async function seedDatabase() {
       INSERT INTO companies (username, password_hash, company_name, email, crew_access_pin)
       VALUES (
         'demo',
-        '$2a$10$rK7JxK/lKlH5lh5HmZGJyOH9vQH5b5Lh5b5Lh5b5Lh5b5Lh5b5L', -- bcrypt hash of 'demo123'
+        'PLACEHOLDER_HASH_REPLACE_WITH_ACTUAL_BCRYPT',
         'Demo Spray Foam Co.',
         'demo@example.com',
         '1234'
@@ -35,6 +35,7 @@ async function seedDatabase() {
       RETURNING id, company_name
     `;
     console.log(`✓ Created company: ${company.company_name}`);
+    console.log('  ⚠️  Note: Password hash is a placeholder. Implement proper bcrypt hashing before use.');
 
     const companyId = company.id;
 
@@ -196,10 +197,13 @@ async function seedDatabase() {
     }
 
     console.log('\n✅ Database seeding completed successfully!');
-    console.log('\n📝 Demo Login Credentials:');
+    console.log('\n📝 Demo Account Created:');
     console.log('   Username: demo');
-    console.log('   Password: demo123');
-    console.log('   Crew PIN: 1234\n');
+    console.log('   Company: Demo Spray Foam Co.');
+    console.log('   Crew PIN: 1234');
+    console.log('\n⚠️  IMPORTANT: Password authentication is not yet implemented.');
+    console.log('   The password_hash field contains a placeholder.');
+    console.log('   Implement bcrypt hashing before using authentication.\n');
 
     process.exit(0);
   } catch (error) {

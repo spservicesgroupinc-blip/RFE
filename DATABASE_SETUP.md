@@ -123,12 +123,7 @@ This creates:
 - Sample inventory items
 - Sample equipment
 
-**Demo Login Credentials:**
-- Username: `demo`
-- Password: `demo123`
-- Crew PIN: `1234`
-
-**Note**: The seed script only runs if the database is empty to avoid duplicates.
+**Note**: Authentication is not yet implemented in this setup. The seed script creates a demo company with a placeholder password hash. You'll need to implement proper bcrypt password hashing and authentication middleware before using login functionality.
 
 ## Troubleshooting
 
