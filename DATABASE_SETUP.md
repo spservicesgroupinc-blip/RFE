@@ -97,11 +97,38 @@ You can verify the schema was created successfully using the Neon Console:
 2. Click on **"Tables"** in the left sidebar
 3. You should see all 8 tables listed
 
-Or run a quick test query:
+Or use the verification script:
 
 ```bash
-npm run db:test
+npm run db:verify
 ```
+
+This will check:
+- Database connection
+- All required tables exist
+- UUID extension is enabled
+
+## Step 8: Seed Demo Data (Optional)
+
+For development and testing, you can add sample data:
+
+```bash
+npm run db:seed
+```
+
+This creates:
+- A demo company account
+- Sample customers
+- Default settings and costs
+- Sample inventory items
+- Sample equipment
+
+**Demo Login Credentials:**
+- Username: `demo`
+- Password: `demo123`
+- Crew PIN: `1234`
+
+**Note**: The seed script only runs if the database is empty to avoid duplicates.
 
 ## Troubleshooting
 

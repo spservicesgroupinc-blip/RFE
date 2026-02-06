@@ -36,6 +36,8 @@ npm run build
 - `npm run preview` - Preview production build
 - `npm run db:test` - Test database connection
 - `npm run db:migrate` - Run database migrations
+- `npm run db:verify` - Verify database setup
+- `npm run db:seed` - Seed database with demo data (dev only)
 
 ## Tech Stack
 - **Frontend**: React 19, TypeScript, Vite
