@@ -1,0 +1,34 @@
+name: Preview Environment with Neon
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+jobs:
+  manage-neon-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Neon Branch
+        if: github.event_name != 'closed'
+        uses: neondatabase/create-branch-action@v5
+        id: create-branch
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Run Migrations
+        if: github.event_name != 'closed'
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url_with_pooler }}
+        run: |
+          npm ci
+          npx prisma migrate deploy
+
+      - name: Cleanup
+        if: github.event_name == 'closed'
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}

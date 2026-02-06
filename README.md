@@ -1,20 +1,13 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Neon Database Expert Agent Workspace
 
-# Run and deploy your AI Studio app
+This workspace contains the **Neon Database Expert** skill, designed to assist with Neon Serverless Postgres tasks.
 
-This contains everything you need to run your app locally.
+## Content
+- `skills/neon-expert/SKILL.md`: The core knowledge base and instructions for the agent.
+- `skills/neon-expert/examples/`: Practical code snippets and configuration files.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1rp6xmOvWua3EbBFYkxjPazKAuFGfyarA
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Usage
+To use this agent, refer to the `SKILL.md` file for guidelines on:
+- Database Branching strategies
+- Autoscaling configurations
+- Connection Pooling setup
