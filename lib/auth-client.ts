@@ -5,11 +5,18 @@ import { BetterAuthReactAdapter } from "@neondatabase/auth/react/adapters";
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
 
 if (!authUrl) {
-  console.error(
-    "VITE_NEON_AUTH_URL is not defined. Please set it in your .env file."
+  console.warn(
+    "⚠️ VITE_NEON_AUTH_URL is not defined. Please set it in your .env file to enable authentication."
+  );
+  console.warn(
+    "Example: VITE_NEON_AUTH_URL=https://ep-xxx.neonauth.c-2.us-east-2.aws.neon.build/dbname/auth"
   );
 }
 
-export const authClient = createAuthClient(authUrl, {
+// Provide a fallback URL to prevent crashes when auth is not configured
+// This allows the app to render in a degraded state
+const fallbackUrl = authUrl || "http://localhost:3000/api/auth";
+
+export const authClient = createAuthClient(fallbackUrl, {
   adapter: BetterAuthReactAdapter(),
 });
