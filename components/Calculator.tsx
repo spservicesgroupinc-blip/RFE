@@ -117,10 +117,41 @@ export const Calculator: React.FC<CalculatorProps> = ({
   };
 
   const getNextStep = () => {
-      if (currentStatus === 'Draft') return { label: 'Finalize & Send', icon: FileCheck, action: onStageEstimate, style: 'bg-brand text-white shadow-red-200' };
-      if (currentStatus === 'Work Order' && !activeScheduledDate) return { label: 'Schedule Job', icon: Calendar, action: onStageWorkOrder, style: 'bg-amber-500 text-white shadow-amber-200' };
-      if (currentStatus === 'Work Order' && activeScheduledDate) return { label: 'Generate Invoice', icon: Receipt, action: onStageInvoice, style: 'bg-emerald-600 text-white shadow-emerald-200' };
-      if (currentStatus === 'Invoiced') return { label: 'Record Payment', icon: CheckCircle2, action: onStageInvoice, style: 'bg-slate-900 text-white shadow-slate-200' };
+      if (currentStatus === 'Draft') return { 
+          label: 'Finalize Estimate', 
+          icon: FileCheck, 
+          action: onStageEstimate, 
+          style: 'bg-brand text-white shadow-red-200',
+          description: 'Review and send estimate to customer'
+      };
+      if (currentStatus === 'Work Order' && !activeScheduledDate) return { 
+          label: 'Schedule Job', 
+          icon: Calendar, 
+          action: onStageWorkOrder, 
+          style: 'bg-amber-500 text-white shadow-amber-200',
+          description: 'Set job date and assign crew'
+      };
+      if (currentStatus === 'Work Order' && activeScheduledDate && !isJobCompleted) return { 
+          label: 'Edit Work Order', 
+          icon: Calendar, 
+          action: onStageWorkOrder, 
+          style: 'bg-slate-600 text-white shadow-slate-200',
+          description: 'Update scheduling or job details'
+      };
+      if (currentStatus === 'Work Order' && isJobCompleted) return { 
+          label: 'Create Invoice', 
+          icon: Receipt, 
+          action: onStageInvoice, 
+          style: 'bg-emerald-600 text-white shadow-emerald-200',
+          description: 'Review actuals and generate invoice'
+      };
+      if (currentStatus === 'Invoiced') return { 
+          label: 'Manage Invoice', 
+          icon: Receipt, 
+          action: onStageInvoice, 
+          style: 'bg-sky-600 text-white shadow-sky-200',
+          description: 'View invoice or record payment'
+      };
       return null;
   };
 
@@ -155,12 +186,17 @@ export const Calculator: React.FC<CalculatorProps> = ({
               <JobProgress status={currentStatus} scheduledDate={activeScheduledDate} />
               
               {nextStep && (
-                  <div className="mt-6 flex justify-center animate-in slide-in-from-top-2 duration-500">
+                  <div className="mt-6 flex flex-col items-center animate-in slide-in-from-top-2 duration-500 gap-2">
+                      {nextStep.description && (
+                          <p className="text-slate-500 text-xs font-medium text-center">{nextStep.description}</p>
+                      )}
                       <button 
                           onClick={nextStep.action}
                           className={`flex items-center gap-2 px-8 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-lg transition-all transform hover:scale-105 active:scale-95 ${nextStep.style} hover:opacity-90`}
                       >
-                          {nextStep.label} <ArrowRight className="w-4 h-4" />
+                          <nextStep.icon className="w-4 h-4" />
+                          {nextStep.label} 
+                          <ArrowRight className="w-4 h-4" />
                       </button>
                   </div>
               )}
@@ -633,60 +669,21 @@ export const Calculator: React.FC<CalculatorProps> = ({
 
            </div>
            
-           {/* ACTION BAR - WORKFLOW LOGIC */}
+           {/* ACTION BAR - SIMPLIFIED WORKFLOW */}
            <div className="md:col-span-2 flex flex-col md:flex-row gap-4 pt-6 border-t border-slate-200 pb-12">
-               <button onClick={() => onSaveEstimate()} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">
-                   <Save className="w-4 h-4" /> Save / Update
+               {/* Always show Save button for updating calculations */}
+               <button 
+                   onClick={() => onSaveEstimate()} 
+                   className="flex-1 bg-slate-900 hover:bg-slate-800 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all"
+               >
+                   <Save className="w-4 h-4" /> {editingEstimateId ? 'Update Changes' : 'Save Draft'}
                </button>
                
-               {/* NEW: Review & Finalize Estimate Button */}
-               {currentStatus === 'Draft' && (
-                   <button 
-                       onClick={onStageEstimate}
-                       className="flex-1 bg-white border-2 border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-800 p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-                   >
-                       <FileCheck className="w-4 h-4" /> Review & Finalize Estimate
-                   </button>
-               )}
-
-               {/* Conditional Workflow Buttons */}
-               
-               {/* If Paid, show status */}
-               {currentStatus === 'Paid' ? (
+               {/* Show status for completed jobs */}
+               {currentStatus === 'Paid' && (
                    <div className="flex-1 bg-emerald-100 text-emerald-700 p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 border border-emerald-200">
                        <CheckCircle2 className="w-4 h-4" /> Paid in Full
                    </div>
-               ) : currentStatus === 'Invoiced' ? (
-                   // If Invoiced, show View Invoice button instead of "Mark Paid" (Moved to InvoiceStage)
-                   <button 
-                       onClick={onStageInvoice}
-                       className="flex-1 bg-sky-600 hover:bg-sky-700 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-sky-200"
-                   >
-                       <Receipt className="w-4 h-4" /> View / Manage Invoice
-                   </button>
-               ) : currentStatus === 'Work Order' ? (
-                   // Work Order Status: Split into "Schedule" or "Invoice" based on progress
-                   <div className="flex-1 flex gap-2">
-                       {/* If already scheduled, prioritize Invoice. If not, prioritize Scheduling */}
-                       {!activeScheduledDate ? (
-                           <button onClick={onStageWorkOrder} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-amber-200">
-                               <Calendar className="w-4 h-4" /> Schedule Job
-                           </button>
-                       ) : (
-                           <button onClick={onStageWorkOrder} className="flex-1 bg-white border-2 border-slate-100 hover:bg-slate-50 text-slate-500 p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2">
-                               <Pencil className="w-4 h-4" /> Edit Work Order
-                           </button>
-                       )}
-                       
-                       <button onClick={onStageInvoice} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-200">
-                           <ClipboardList className="w-4 h-4" /> Finalize & Invoice
-                       </button>
-                   </div>
-               ) : (
-                   // Default: Move to Sold/Work Order
-                   <button onClick={onStageWorkOrder} className="flex-1 bg-brand hover:bg-brand-hover text-white p-4 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-red-200">
-                       <HardHat className="w-4 h-4" /> Sold / Work Order <ArrowRight className="w-4 h-4"/>
-                   </button>
                )}
            </div>
        </div>
