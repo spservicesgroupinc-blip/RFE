@@ -8,6 +8,7 @@ import {
   User, 
   LogOut, 
   RefreshCw, 
+  Settings,
   CheckCircle2, 
   AlertCircle,
   X,
@@ -282,7 +283,7 @@ export const Layout: React.FC<LayoutProps> = ({
            <span className="text-[9px] font-bold mt-1">Stock</span>
          </button>
          <button onClick={() => setView('settings')} className={`flex flex-col items-center p-2 rounded-lg flex-1 ${view === 'settings' ? 'text-brand' : 'text-slate-400'}`}>
-           <RefreshCw className="w-5 h-5" />
+           <Settings className="w-5 h-5" />
            <span className="text-[9px] font-bold mt-1">Settings</span>
          </button>
       </div>
