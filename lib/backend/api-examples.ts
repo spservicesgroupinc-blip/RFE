@@ -5,7 +5,7 @@
  * using Neon Auth and Neon Serverless in a Netlify Function or similar environment.
  */
 
-import { sql, getUserFromSession } from '../lib/backend/db';
+import { sql, getUserFromSession } from './db';
 
 /**
  * Example: Get all customers for the authenticated user's company

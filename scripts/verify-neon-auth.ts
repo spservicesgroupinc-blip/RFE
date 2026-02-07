@@ -39,7 +39,10 @@ const sql = neon(DATABASE_URL);
 try {
   const result = await sql`SELECT version()`;
   console.log('   ✅ Database connection successful');
-  console.log(`   📊 PostgreSQL version: ${result[0].version.split(' ')[1]}`);
+  const versionString = result[0]?.version || 'Unknown version';
+  const versionMatch = versionString.match(/PostgreSQL ([\d.]+)/);
+  const version = versionMatch ? versionMatch[1] : 'Unknown';
+  console.log(`   📊 PostgreSQL version: ${version}`);
 } catch (error) {
   console.error('   ❌ Failed to connect to database:', error);
   process.exit(1);

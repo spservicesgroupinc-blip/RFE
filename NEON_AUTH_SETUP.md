@@ -60,6 +60,9 @@ The required packages should already be installed, but if needed:
 npm install @neondatabase/auth @neondatabase/serverless react-router-dom
 ```
 
+**Note about @neondatabase/auth version**: 
+This project uses a beta version of @neondatabase/auth (v0.1.0-beta.21). This is the current stable beta release. While Neon Auth is in beta, it's production-ready and actively maintained. Check the [Neon Auth documentation](https://neon.com/docs/auth) for the latest version information.
+
 ## Step 5: Run the Application
 
 ```bash
