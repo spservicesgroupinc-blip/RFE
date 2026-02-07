@@ -5,15 +5,19 @@ A React-based application for managing spray foam business operations with a Neo
 ## Quick Start
 
 ### 1. Database Setup
-Follow the comprehensive guide to set up your Neon database:
+The easiest way to set up your database is using the interactive setup script:
 ```bash
-# See detailed instructions in DATABASE_SETUP.md
-npm install
-npm run db:test    # Test connection
-npm run db:migrate # Create schema
+npm run db:setup
 ```
 
-See **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** for complete database setup instructions.
+This will guide you through:
+- Installing dependencies
+- Configuring your Neon database connection
+- Testing the connection
+- Running migrations
+- Optionally seeding demo data
+
+For detailed manual setup instructions, see **[DATABASE_SETUP.md](./DATABASE_SETUP.md)**.
 
 ### 2. Development
 ```bash
@@ -26,6 +30,7 @@ npm run build
 ```
 
 ## Documentation
+- **[DATABASE_STATUS.md](./DATABASE_STATUS.md)** - Current setup status and overview
 - **[DATABASE_SETUP.md](./DATABASE_SETUP.md)** - Complete database setup guide
 - **[DEPLOY.md](./DEPLOY.md)** - Netlify deployment instructions
 - **`skills/neon-expert/SKILL.md`** - Neon database best practices and architecture
@@ -34,6 +39,7 @@ npm run build
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
+- `npm run db:setup` - Interactive database setup (recommended)
 - `npm run db:test` - Test database connection
 - `npm run db:migrate` - Run database migrations
 - `npm run db:verify` - Verify database setup
