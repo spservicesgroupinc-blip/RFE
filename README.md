@@ -37,6 +37,17 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 - [Quick Start Guide](./QUICKSTART.md) - Quick start guide
 - [Neon Auth Setup](./NEON_AUTH_SETUP.md) - Authentication configuration
 - [Deployment Guide](./DEPLOY.md) - Production deployment
+- [GitHub Actions Setup](./GITHUB_ACTIONS_SETUP.md) - CI/CD and preview branches
+
+## CI/CD
+
+This repository includes GitHub Actions workflows for:
+
+- **Neon Preview Branches**: Automatically creates isolated database branches for each PR
+- Automatic branch deletion when PR is closed
+- 14-day automatic expiration
+
+See [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md) for configuration details.
 
 ## Development
 

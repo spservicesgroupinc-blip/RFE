@@ -100,6 +100,11 @@ If styles don't appear:
 - [Neon Auth Documentation](https://neon.tech/docs/guides/auth-overview)
 - [React Documentation](https://react.dev)
 - [Vite Documentation](https://vitejs.dev)
+- [GitHub Actions Setup for Preview Branches](./GITHUB_ACTIONS_SETUP.md)
+
+## CI/CD and Preview Environments
+
+This repository includes a GitHub Actions workflow that automatically creates Neon database branches for each pull request. See [GITHUB_ACTIONS_SETUP.md](./GITHUB_ACTIONS_SETUP.md) for setup instructions.
 
 ## Getting Help
 
