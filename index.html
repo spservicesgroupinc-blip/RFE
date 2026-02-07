@@ -13,7 +13,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     
     <title>Spray Foam Pro Calculator</title>
-    <link rel="manifest" href="manifest.json" />
+    <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/10473/10473634.png" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/10473/10473634.png" />
     
@@ -83,7 +83,7 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           // Direct registration is safer than URL construction in some preview environments
-          navigator.serviceWorker.register('./sw.js')
+          navigator.serviceWorker.register('/sw.js')
             .then(reg => {
               console.log('Service Worker registered successfully:', reg.scope);
             })
