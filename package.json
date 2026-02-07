@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify-auth": "tsx scripts/verify-neon-auth.ts"
   },
   "dependencies": {
     "@neondatabase/auth": "^0.1.0-beta.21",
