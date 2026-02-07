@@ -281,9 +281,9 @@ export const Layout: React.FC<LayoutProps> = ({
            <Warehouse className="w-5 h-5" />
            <span className="text-[9px] font-bold mt-1">Stock</span>
          </button>
-         <button onClick={() => setView('profile')} className={`flex flex-col items-center p-2 rounded-lg flex-1 ${view === 'profile' ? 'text-brand' : 'text-slate-400'}`}>
-           <User className="w-5 h-5" />
-           <span className="text-[9px] font-bold mt-1">Profile</span>
+         <button onClick={() => setView('settings')} className={`flex flex-col items-center p-2 rounded-lg flex-1 ${view === 'settings' ? 'text-brand' : 'text-slate-400'}`}>
+           <RefreshCw className="w-5 h-5" />
+           <span className="text-[9px] font-bold mt-1">Settings</span>
          </button>
       </div>
     </div>
