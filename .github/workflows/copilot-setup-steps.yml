@@ -1,4 +1,4 @@
-name: Copilot Setup Steps
+name: Copilot Environment Verification
 
 on:
   workflow_dispatch:
@@ -25,12 +25,12 @@ jobs:
       - name: Check project structure
         run: |
           echo "✓ Verifying project structure..."
-          test -f package.json || exit 1
-          test -f tsconfig.json || exit 1
-          test -f vite.config.ts || exit 1
-          test -d components || exit 1
-          test -d lib || exit 1
-          test -d database || exit 1
+          echo "Checking package.json..." && test -f package.json || exit 1
+          echo "Checking tsconfig.json..." && test -f tsconfig.json || exit 1
+          echo "Checking vite.config.ts..." && test -f vite.config.ts || exit 1
+          echo "Checking components directory..." && test -d components || exit 1
+          echo "Checking lib directory..." && test -d lib || exit 1
+          echo "Checking database directory..." && test -d database || exit 1
           echo "✓ Project structure verified"
 
       - name: Display environment info
