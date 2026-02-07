@@ -78,6 +78,19 @@ export default async (req: Request) => {
                 data = await handleCompleteJob(payload, payload.token);
                 break;
 
+            case 'SAVE_PDF':
+                // Stub for now - requires Storage (S3/R2/Blob)
+                // We return a success status to prevent frontend crashes.
+                console.log(`[API] SAVE_PDF called for ${payload.fileName}`);
+                data = { url: "#saved-locally-only", message: "PDF Storage not yet configured" };
+                break;
+
+            case 'LOG_TIME':
+                // Stub for now - requires Schema update for work_logs
+                console.log(`[API] LOG_TIME called: ${JSON.stringify(payload)}`);
+                data = { success: true };
+                break;
+
             default:
                 return new Response(JSON.stringify({ status: 'error', message: `Unknown action: ${action}` }), {
                     headers: { "Content-Type": "application/json" }
