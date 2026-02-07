@@ -1,6 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import "@neondatabase/auth/ui/css";
 import App from './App';
+import { Providers } from './providers';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -44,7 +47,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <BrowserRouter>
+        <Providers>
+          <App />
+        </Providers>
+      </BrowserRouter>
     </ErrorBoundary>
   </React.StrictMode>
 );
