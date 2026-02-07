@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@neondatabase/auth": "^0.1.0-beta.21",
     "@neondatabase/serverless": "^1.0.2",
     "@netlify/neon": "^0.1.2",
     "dotenv": "^17.2.4",
@@ -16,7 +17,8 @@
     "jspdf-autotable": "3.8.2",
     "lucide-react": "^0.561.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.13.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
