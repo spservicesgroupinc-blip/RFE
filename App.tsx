@@ -27,7 +27,7 @@ function ConfigurationWarning() {
           The application requires Neon Auth to be configured. Please follow these steps:
         </p>
         <ol className="list-decimal list-inside space-y-2 text-yellow-800 mb-4">
-          <li>Create a Neon project at <a href="https://console.neon.tech" className="underline font-medium" target="_blank" rel="noopener noreferrer">console.neon.tech</a></li>
+          <li>Create a Neon project at <a href="https://console.neon.tech" className="underline font-medium" target="_blank" rel="noopener noreferrer" aria-label="Neon Console (opens in new tab)">console.neon.tech</a></li>
           <li>Enable Auth in your Neon project dashboard</li>
           <li>Copy your Auth URL from the Neon dashboard</li>
           <li>Create a <code className="bg-yellow-100 px-2 py-1 rounded font-mono text-sm">.env</code> file in the project root</li>
