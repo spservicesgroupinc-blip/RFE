@@ -139,10 +139,22 @@ Modified files:
 1. **Customize the UI** - Modify `App.tsx` to change the look
 2. **Add API endpoints** - See `lib/backend/api-examples.ts` for examples
 3. **Protect routes** - Use `authClient.useSession()` in any component
-4. **Deploy** - Your auth setup works on Netlify, Vercel, and other platforms
+4. **Deploy to Netlify** - See [DEPLOY.md](./DEPLOY.md) for complete deployment instructions
+
+## Deployment
+
+Ready to deploy? Check out our comprehensive deployment guide:
+
+- 🚀 [Deploy to Netlify](./DEPLOY.md) - Step-by-step deployment with environment variables and database migration
+
+The deployment guide covers:
+- Setting up both required environment variables (`DATABASE_URL` and `VITE_NEON_AUTH_URL`)
+- Running database migrations
+- Troubleshooting common deployment issues
 
 ## Need Help?
 
 - 📖 [Detailed Setup Guide](./NEON_AUTH_SETUP.md)
+- 🚀 [Deployment Guide](./DEPLOY.md)
 - 📚 [Neon Auth Docs](https://neon.com/docs/auth)
 - 💬 [Neon Discord](https://discord.gg/neon)
