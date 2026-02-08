@@ -35,7 +35,7 @@ export const useSync = () => {
 
       try {
         // Attempt Fetch from Cloud (Source of Truth)
-        const cloudData = await syncDown();
+        const cloudData: any = await syncDown();
 
         if (cloudData) {
           // Extract user session if included
