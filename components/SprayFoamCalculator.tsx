@@ -15,6 +15,7 @@ import { useEstimates } from '../hooks/useEstimates';
 import { calculateResults } from '../utils/calculatorHelpers';
 import { generateEstimatePDF, generateDocumentPDF, generateWorkOrderPDF } from '../utils/pdfGenerator';
 import { syncUp } from '../services/api';
+import { authClient } from '../lib/auth-client';
 
 import LoginPage from './LoginPage';
 import { LandingPage } from './LandingPage';
@@ -100,9 +101,11 @@ const SprayFoamCalculator: React.FC = () => {
 
   const results = useMemo(() => calculateResults(appData), [appData]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from Neon Auth
+    await authClient.signOut();
+    // Clear local state
     dispatch({ type: 'LOGOUT' });
-    localStorage.removeItem('foamProSession');
   };
 
   const resetCalculator = () => {
@@ -198,14 +201,12 @@ const SprayFoamCalculator: React.FC = () => {
       });
 
       if (savedRecord) {
-          if (session?.spreadsheetId) {
-             dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
-             const stateSnapshot = {
-                 ...appData,
-                 savedEstimates: appData.savedEstimates.map(e => e.id === savedRecord.id ? savedRecord : e)
-             };
-             await syncUp(stateSnapshot, session.spreadsheetId);
-          }
+          dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
+          const stateSnapshot = {
+              ...appData,
+              savedEstimates: appData.savedEstimates.map(e => e.id === savedRecord.id ? savedRecord : e)
+          };
+          await syncUp(stateSnapshot);
           await handleMarkPaid(savedRecord.id);
       }
   };
@@ -295,20 +296,16 @@ const SprayFoamCalculator: React.FC = () => {
       }
   };
 
+  // Landing page for trial access
   if (!ui.hasTrialAccess && !session) {
       return <LandingPage onEnterApp={() => dispatch({ type: 'SET_TRIAL_ACCESS', payload: true })} />;
   }
 
+  // If no session, show loading (Neon Auth will handle redirect)
   if (!session) {
-      return <LoginPage 
-          onLoginSuccess={(s) => { 
-              dispatch({ type: 'SET_SESSION', payload: s }); 
-              localStorage.setItem('foamProSession', JSON.stringify(s)); 
-              localStorage.setItem('foamProTrialAccess', 'true');
-          }} 
-          installPrompt={deferredPrompt}
-          onInstall={handleInstallApp}
-      />;
+      return <div className="flex h-screen items-center justify-center text-slate-400 bg-slate-900">
+        <Loader2 className="animate-spin mr-2"/> Loading session...
+      </div>;
   }
 
   if (ui.isLoading) return <div className="flex h-screen items-center justify-center text-slate-400 bg-slate-900"><Loader2 className="animate-spin mr-2"/> Initializing Enterprise Workspace...</div>;

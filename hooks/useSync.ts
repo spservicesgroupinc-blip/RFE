@@ -2,33 +2,32 @@
 import { useEffect, useRef } from 'react';
 import { useCalculator, DEFAULT_STATE } from '../context/CalculatorContext';
 import { syncUp, syncDown } from '../services/api';
+import { authClient } from '../lib/auth-client';
 
 export const useSync = () => {
   const { state, dispatch } = useCalculator();
   const { session, appData, ui } = state;
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSyncedStateRef = useRef<string>("");
+  const neonSession = authClient.useSession();
 
-  // 1. SESSION RECOVERY
+  // 1. SYNC NEON AUTH SESSION TO LOCAL STATE
   useEffect(() => {
-    const savedSession = localStorage.getItem('foamProSession');
-    if (savedSession) {
-      try {
-        const parsedSession = JSON.parse(savedSession);
-        dispatch({ type: 'SET_SESSION', payload: parsedSession });
-        dispatch({ type: 'SET_TRIAL_ACCESS', payload: true });
-      } catch (e) {
-        localStorage.removeItem('foamProSession');
-      }
-    } else {
-      // If no session, ensure loading stops
+    // When Neon Auth session changes, update our local session state
+    if (neonSession.data?.session && neonSession.data?.user) {
+      // Session exists, but we need to fetch user and company data from backend
+      // This will be handled by the initialization effect below
+      dispatch({ type: 'SET_LOADING', payload: false });
+    } else if (!neonSession.isPending) {
+      // No session and not loading - clear local session
+      dispatch({ type: 'SET_SESSION', payload: null });
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [dispatch]);
+  }, [neonSession.data, neonSession.isPending, dispatch]);
 
   // 2. CLOUD-FIRST INITIALIZATION
   useEffect(() => {
-    if (!session) return;
+    if (!neonSession.data?.session) return;
 
     const initializeApp = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -36,9 +35,18 @@ export const useSync = () => {
 
       try {
         // Attempt Fetch from Cloud (Source of Truth)
-        const cloudData = await syncDown(session.spreadsheetId, session.token);
+        const cloudData: any = await syncDown();
 
         if (cloudData) {
+          // Extract user session if included
+          const userSession = cloudData.userSession;
+          delete cloudData.userSession; // Remove from data to avoid storing in appData
+          
+          // Set user session in context
+          if (userSession) {
+            dispatch({ type: 'SET_SESSION', payload: userSession });
+          }
+
           // Deep merge cloud data over default state
           const mergedState = {
             ...DEFAULT_STATE,
@@ -76,7 +84,7 @@ export const useSync = () => {
         console.error("Cloud sync failed:", e);
 
         // Fallback: If cloud fails (offline), try Local Storage
-        const localSaved = localStorage.getItem(`foamProState_${session.username}`);
+        const localSaved = localStorage.getItem(`foamProState_${neonSession.data?.user?.email}`);
 
         if (localSaved) {
           const localState = JSON.parse(localSaved);
@@ -97,17 +105,20 @@ export const useSync = () => {
     };
 
     initializeApp();
-  }, [session, dispatch]);
+  }, [neonSession.data?.session, dispatch]);
 
   // 3. AUTO-SYNC (Write to Cloud)
   useEffect(() => {
-    if (ui.isLoading || !ui.isInitialized || !session) return;
-    if (session.role === 'crew') return; // Crew doesn't auto-sync UP generally
+    if (ui.isLoading || !ui.isInitialized || !neonSession.data?.session) return;
+    if (session?.role === 'crew') return; // Crew doesn't auto-sync UP generally
 
     const currentStateStr = JSON.stringify(appData);
 
     // Always backup to local storage
-    localStorage.setItem(`foamProState_${session.username}`, currentStateStr);
+    const userEmail = neonSession.data?.user?.email;
+    if (userEmail) {
+      localStorage.setItem(`foamProState_${userEmail}`, currentStateStr);
+    }
 
     // If state hasn't changed from what we last saw from/sent to cloud, do nothing
     if (currentStateStr === lastSyncedStateRef.current) return;
@@ -119,7 +130,7 @@ export const useSync = () => {
     syncTimerRef.current = setTimeout(async () => {
       dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
 
-      const success = await syncUp(appData, session.spreadsheetId, session.token);
+      const success = await syncUp(appData);
 
       if (success) {
         lastSyncedStateRef.current = currentStateStr;
@@ -131,14 +142,14 @@ export const useSync = () => {
     }, 3000);
 
     return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
-  }, [appData, ui.isLoading, ui.isInitialized, session, dispatch]);
+  }, [appData, ui.isLoading, ui.isInitialized, neonSession.data?.session, session?.role, dispatch, neonSession.data?.user?.email]);
 
   // 4. MANUAL FORCE SYNC (Push)
   const handleManualSync = async () => {
-    if (!session) return;
+    if (!neonSession.data?.session) return;
     dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
 
-    const success = await syncUp(appData, session.spreadsheetId, session.token);
+    const success = await syncUp(appData);
 
     if (success) {
       lastSyncedStateRef.current = JSON.stringify(appData);
@@ -153,10 +164,10 @@ export const useSync = () => {
 
   // 5. FORCE REFRESH (Pull) - New for Crew Dashboard
   const forceRefresh = async () => {
-    if (!session) return;
+    if (!neonSession.data?.session) return;
     dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
     try {
-      const cloudData = await syncDown(session.spreadsheetId, session.token);
+      const cloudData = await syncDown();
       if (cloudData) {
         const mergedState = { ...state.appData, ...cloudData };
         dispatch({ type: 'LOAD_DATA', payload: mergedState });

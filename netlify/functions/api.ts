@@ -1,4 +1,4 @@
-import { sql } from "../../database/client";
+import { sql, getUserFromSession as getUser } from "../../lib/backend/db";
 
 /**
  * Helper to extract session token from Authorization header
@@ -215,7 +215,17 @@ async function handleSyncDown(sessionToken: string) {
         equipment,
         savedEstimates,
         customers,
-        materialLogs
+        materialLogs,
+        // Include user session information
+        userSession: {
+            user_id: user.user_id,
+            email: user.email,
+            name: user.name,
+            company_id: user.company_id,
+            company_name: user.company_name,
+            role: user.role,
+            crew_pin: user.crew_pin
+        }
     };
 }
 

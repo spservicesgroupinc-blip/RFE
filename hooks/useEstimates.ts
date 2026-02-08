@@ -134,13 +134,11 @@ export const useEstimates = () => {
                 dispatch({ type: 'SET_EDITING_ESTIMATE', payload: null });
                 dispatch({ type: 'SET_VIEW', payload: 'dashboard' });
             }
-            if (session?.spreadsheetId) {
-                try {
-                    await deleteEstimate(id, session.spreadsheetId, session.token);
-                    dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'success', message: 'Job Deleted' } });
-                } catch (err) {
-                    dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'error', message: 'Local delete success, but server failed.' } });
-                }
+            try {
+                await deleteEstimate(id);
+                dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'success', message: 'Job Deleted' } });
+            } catch (err) {
+                dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'error', message: 'Local delete success, but server failed.' } });
             }
         }
     };
@@ -150,7 +148,7 @@ export const useEstimates = () => {
         if (estimate) {
             dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'success', message: 'Processing Payment & P&L...' } });
             dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
-            const result = await markJobPaid(id, session?.spreadsheetId || '', session?.token);
+            const result = await markJobPaid(id);
             if (result.success && result.estimate) {
                 const updatedEstimates = appData.savedEstimates.map(e => e.id === id ? result.estimate! : e);
                 dispatch({ type: 'UPDATE_DATA', payload: { savedEstimates: updatedEstimates } });
@@ -218,13 +216,11 @@ export const useEstimates = () => {
     };
 
     const handleBackgroundWorkOrderGeneration = async (record: EstimateRecord, currentWarehouse: any) => {
-        if (!session?.spreadsheetId) return;
-
         dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
 
         try {
             // Create Standalone Sheet for Crew Log (Slow API Call)
-            const woUrl = await createWorkOrderSheet(record, session.folderId, session.spreadsheetId, session.token);
+            const woUrl = await createWorkOrderSheet(record);
 
             let finalRecord = record;
             if (woUrl) {
@@ -255,7 +251,7 @@ export const useEstimates = () => {
                 savedEstimates: freshEstimates
             };
 
-            await syncUp(updatedState, session.spreadsheetId, session.token);
+            await syncUp(updatedState);
 
             dispatch({ type: 'SET_SYNC_STATUS', payload: 'idle' });
             dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'success', message: 'Work Order & Sheet Synced Successfully' } });
@@ -285,12 +281,10 @@ export const useEstimates = () => {
         dispatch({ type: 'SET_NOTIFICATION', payload: { type: 'success', message: 'Order Saved & Stock Updated' } });
         dispatch({ type: 'SET_VIEW', payload: 'warehouse' });
 
-        if (session?.spreadsheetId) {
-            dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
-            const updatedState = { ...appData, warehouse: newWarehouse, purchaseOrders: updatedPOs };
-            await syncUp(updatedState, session.spreadsheetId, session.token);
-            dispatch({ type: 'SET_SYNC_STATUS', payload: 'idle' });
-        }
+        dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
+        const updatedState = { ...appData, warehouse: newWarehouse, purchaseOrders: updatedPOs };
+        await syncUp(updatedState);
+        dispatch({ type: 'SET_SYNC_STATUS', payload: 'idle' });
     };
 
     return {

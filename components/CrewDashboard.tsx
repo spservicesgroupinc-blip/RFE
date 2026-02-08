@@ -159,19 +159,13 @@ export const CrewDashboard: React.FC<CrewDashboardProps> = ({ state, onLogout, s
       setIsCompleting(true);
       
       try {
-        const sessionStr = localStorage.getItem('foamProSession');
-        if (!sessionStr) throw new Error("Session expired. Please log out and back in.");
-        
-        const session = JSON.parse(sessionStr);
-        if (!session.spreadsheetId) throw new Error("Invalid session data. Please log out and back in.");
-
         const finalData = {
             ...actuals,
             completionDate: new Date().toISOString(),
-            completedBy: session.username || "Crew"
+            completedBy: state.companyProfile.companyName || "Crew"
         };
 
-        const success = await completeJob(selectedJob.id, finalData, session.spreadsheetId);
+        const success = await completeJob(selectedJob.id, finalData);
         
         if (success) {
             setShowCompletionModal(false);

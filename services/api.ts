@@ -12,6 +12,7 @@ interface ApiResponse {
 /**
  * Helper for making robust fetch requests to Neon backend
  * Includes retry logic and automatic session token injection
+ * Session token is retrieved from the auth client on each request
  */
 const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
     if (!API_CONFIG.NEON_URL) {
@@ -20,8 +21,17 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
 
     try {
         // Get current session token from Neon Auth
-        const session = authClient.useSession?.() ?? { data: null };
-        const sessionToken = session.data?.session?.token;
+        // We need to call this dynamically since hooks can't be called outside components
+        // The authClient stores the session internally and we can access it
+        let sessionToken: string | undefined;
+        try {
+            // Try to access session from authClient internal state
+            // This is a workaround since we can't use hooks in service functions
+            const authState = (authClient as any)._internal?.session?.get?.();
+            sessionToken = authState?.session?.token;
+        } catch (e) {
+            console.warn('Could not access auth session token', e);
+        }
 
         const response = await fetch(API_CONFIG.NEON_URL, {
             method: 'POST',
