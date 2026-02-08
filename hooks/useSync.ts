@@ -38,6 +38,15 @@ export const useSync = () => {
         const cloudData = await syncDown();
 
         if (cloudData) {
+          // Extract user session if included
+          const userSession = cloudData.userSession;
+          delete cloudData.userSession; // Remove from data to avoid storing in appData
+          
+          // Set user session in context
+          if (userSession) {
+            dispatch({ type: 'SET_SESSION', payload: userSession });
+          }
+
           // Deep merge cloud data over default state
           const mergedState = {
             ...DEFAULT_STATE,

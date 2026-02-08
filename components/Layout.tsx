@@ -69,7 +69,7 @@ export const Layout: React.FC<LayoutProps> = ({
   };
 
   const copyUsername = () => {
-      navigator.clipboard.writeText(userSession.username);
+      navigator.clipboard.writeText(userSession.email);
       setCopiedId(true);
       setTimeout(() => setCopiedId(false), 2000);
   };
@@ -211,14 +211,14 @@ export const Layout: React.FC<LayoutProps> = ({
         <div className="p-4 border-t border-slate-100 bg-slate-50">
            <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]" title={userSession.companyName}>{userSession.companyName}</span>
+                <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]" title={userSession.company_name}>{userSession.company_name}</span>
                 <button 
                     onClick={copyUsername}
                     className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium bg-white border border-slate-200 px-2 py-1 rounded-md my-1 w-fit hover:border-red-200 hover:text-brand transition-colors group"
-                    title="Click to copy Company ID"
+                    title="Click to copy user email"
                 >
-                    <span className="uppercase tracking-wider text-slate-400 group-hover:text-red-400">ID:</span>
-                    <span className="font-bold font-mono">{userSession.username}</span>
+                    <span className="uppercase tracking-wider text-slate-400 group-hover:text-red-400">EMAIL:</span>
+                    <span className="font-bold font-mono">{userSession.email}</span>
                     {copiedId ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />}
                 </button>
                 <span className="text-[10px] text-slate-400">
@@ -243,7 +243,7 @@ export const Layout: React.FC<LayoutProps> = ({
               <div className="scale-75 origin-left">
                 <RFESmallLogo />
               </div>
-              <span className="text-[9px] font-medium text-slate-400 leading-none block -ml-2 mt-1">ID: {userSession.username}</span>
+              <span className="text-[9px] font-medium text-slate-400 leading-none block -ml-2 mt-1">{userSession.name}</span>
            </div>
            <div className="flex items-center gap-2">
               {installPrompt && (
