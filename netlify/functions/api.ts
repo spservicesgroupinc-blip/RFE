@@ -1,4 +1,4 @@
-import { sql } from "../../database/client";
+import { sql, getUserFromSession as getUser } from "../../lib/backend/db";
 
 /**
  * Helper to extract session token from Authorization header

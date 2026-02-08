@@ -198,14 +198,12 @@ const SprayFoamCalculator: React.FC = () => {
       });
 
       if (savedRecord) {
-          if (session?.spreadsheetId) {
-             dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
-             const stateSnapshot = {
-                 ...appData,
-                 savedEstimates: appData.savedEstimates.map(e => e.id === savedRecord.id ? savedRecord : e)
-             };
-             await syncUp(stateSnapshot, session.spreadsheetId);
-          }
+          dispatch({ type: 'SET_SYNC_STATUS', payload: 'syncing' });
+          const stateSnapshot = {
+              ...appData,
+              savedEstimates: appData.savedEstimates.map(e => e.id === savedRecord.id ? savedRecord : e)
+          };
+          await syncUp(stateSnapshot);
           await handleMarkPaid(savedRecord.id);
       }
   };

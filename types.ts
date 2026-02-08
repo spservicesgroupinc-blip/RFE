@@ -301,10 +301,11 @@ export interface CalculatorState {
 }
 
 export interface UserSession {
-  username: string;
-  companyName: string;
-  spreadsheetId: string;
-  folderId?: string;
-  token?: string;
-  role: 'admin' | 'crew'; 
+  user_id: string;
+  email: string;
+  name: string;
+  company_id: string;
+  company_name: string;
+  role: 'admin' | 'crew';
+  crew_pin?: string;
 }

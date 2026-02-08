@@ -19,9 +19,9 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
     }
 
     try {
-        // Get current session token from Neon Auth
-        const session = authClient.useSession?.() ?? { data: null };
-        const sessionToken = session.data?.session?.token;
+        // Get current session token from Neon Auth store
+        const sessionData = authClient.$session.get();
+        const sessionToken = sessionData?.session?.token;
 
         const response = await fetch(API_CONFIG.NEON_URL, {
             method: 'POST',
