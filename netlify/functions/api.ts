@@ -1,12 +1,51 @@
 import { sql } from "../../database/client";
 
+/**
+ * Helper to extract session token from Authorization header
+ */
+function getSessionToken(req: Request): string | null {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return null;
+    }
+    return authHeader.substring(7);
+}
+
+/**
+ * Get user and company from Neon Auth session
+ */
+async function getUserFromSession(sessionToken: string) {
+    try {
+        const result = await sql`
+            SELECT 
+                u.id as user_id,
+                u.email,
+                u.name,
+                c.id as company_id,
+                c.company_name,
+                c.role,
+                c.crew_pin
+            FROM "user" u
+            INNER JOIN session s ON s."userId" = u.id
+            INNER JOIN companies c ON c.user_id = u.id
+            WHERE s.token = ${sessionToken}
+            AND s."expiresAt" > NOW()
+        `;
+        
+        return result[0] || null;
+    } catch (error) {
+        console.error('Error fetching user from session:', error);
+        return null;
+    }
+}
+
 export default async (req: Request) => {
     // CORS handling for local dev or cross-origin if needed
     if (req.method === "OPTIONS") {
         return new Response("ok", {
             headers: {
                 "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "Content-Type",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization",
             },
         });
     }
@@ -29,53 +68,50 @@ export default async (req: Request) => {
                 data = result[0];
                 break;
 
-            case 'SIGNUP':
-                data = await handleSignup(payload);
-                break;
-
-            case 'LOGIN':
-                data = await handleLogin(payload);
-                break;
-
-            case 'CREW_LOGIN':
-                data = await handleCrewLogin(payload);
-                break;
-
             case 'SUBMIT_TRIAL':
-                // Just log it for now
-                console.log(`[TRIAL] New lead: ${JSON.stringify(payload)}`);
+                // Log trial submission to leads table
+                await sql`
+                    INSERT INTO leads (name, email, phone, data)
+                    VALUES (${payload.name}, ${payload.email}, ${payload.phone || ''}, ${JSON.stringify(payload)})
+                `;
                 data = { success: true };
                 break;
 
             case 'SYNC_DOWN':
-                if (!payload.token) throw new Error("Missing token");
-                data = await handleSyncDown(payload, payload.token);
+                const sessionToken = getSessionToken(req);
+                if (!sessionToken) throw new Error("Unauthorized");
+                data = await handleSyncDown(sessionToken);
                 break;
 
             case 'SYNC_UP':
-                if (!payload.token) throw new Error("Missing token");
-                data = await handleSyncUp(payload, payload.token);
+                const syncToken = getSessionToken(req);
+                if (!syncToken) throw new Error("Unauthorized");
+                data = await handleSyncUp(payload, syncToken);
                 break;
 
             case 'DELETE_ESTIMATE':
-                if (!payload.token) throw new Error("Missing token");
-                await handleDeleteEstimate(payload, payload.token);
+                const deleteToken = getSessionToken(req);
+                if (!deleteToken) throw new Error("Unauthorized");
+                await handleDeleteEstimate(payload, deleteToken);
                 data = { success: true };
                 break;
 
             case 'MARK_JOB_PAID':
-                if (!payload.token) throw new Error("Missing token");
-                data = await handleMarkJobPaid(payload, payload.token);
+                const paidToken = getSessionToken(req);
+                if (!paidToken) throw new Error("Unauthorized");
+                data = await handleMarkJobPaid(payload, paidToken);
                 break;
 
             case 'CREATE_WORK_ORDER':
-                if (!payload.token) throw new Error("Missing token");
-                data = await handleCreateWorkOrder(payload, payload.token);
+                const woToken = getSessionToken(req);
+                if (!woToken) throw new Error("Unauthorized");
+                data = await handleCreateWorkOrder(payload, woToken);
                 break;
 
             case 'COMPLETE_JOB':
-                if (!payload.token) throw new Error("Missing token");
-                data = await handleCompleteJob(payload, payload.token);
+                const completeToken = getSessionToken(req);
+                if (!completeToken) throw new Error("Unauthorized");
+                data = await handleCompleteJob(payload, completeToken);
                 break;
 
             case 'SAVE_PDF':
@@ -110,144 +146,14 @@ export default async (req: Request) => {
     }
 };
 
-// --- Auth Helpers ---
-
-import crypto from 'crypto';
-
-const CONSTANTS = {
-    SECRET_SALT: "rfe_salt_v1"
-};
-
-function hashPassword(p: string): string {
-    return crypto.createHash('sha256').update(p + CONSTANTS.SECRET_SALT).digest('base64');
-}
-
-function generateToken(username: string, role: string): string {
-    const expiry = new Date().getTime() + (1000 * 60 * 60 * 24 * 7); // 7 days
-    const data = `${username}:${role}:${expiry}`;
-    const hmac = crypto.createHmac('sha256', CONSTANTS.SECRET_SALT);
-    hmac.update(data);
-    const signature = hmac.digest('base64');
-    return Buffer.from(`${data}::${signature}`).toString('base64');
-}
-
-function validateToken(token: string) {
-    if (!token) return null;
-    try {
-        const decoded = Buffer.from(token, 'base64').toString('utf8');
-        const parts = decoded.split("::");
-        if (parts.length !== 2) return null;
-        const data = parts[0];
-        const signature = parts[1];
-
-        const hmac = crypto.createHmac('sha256', CONSTANTS.SECRET_SALT);
-        hmac.update(data);
-        const expectedSig = hmac.digest('base64');
-
-        if (signature !== expectedSig) return null;
-
-        const [user, role, expiry] = data.split(":");
-        if (new Date().getTime() > parseInt(expiry)) return null;
-        return { username: user, role: role };
-    } catch (e) { return null; }
-}
-
-async function getUserFromToken(token: string) {
-    const valid = validateToken(token);
-    if (!valid) throw new Error("Invalid Token");
-    const users = await sql`SELECT * FROM users WHERE username = ${valid.username}`;
-    if (users.length === 0) throw new Error("User not found");
-    return users[0];
-}
 
 // --- Action Handlers ---
 
-async function handleSignup(p: any) {
-    const { username, password, companyName, email } = p;
-
-    // Check existing
-    const existing = await sql`SELECT id FROM users WHERE username = ${username}`;
-    if (existing.length > 0) throw new Error("Username already taken.");
-
-    const crewPin = Math.floor(1000 + Math.random() * 9000).toString();
-    const headers = {
-        username,
-        password_hash: hashPassword(password),
-        company_name: companyName,
-        email,
-        role: 'admin',
-        crew_pin: crewPin
-    };
-
-    // Insert User
-    const users = await sql`
-        INSERT INTO users (username, password_hash, company_name, email, role, crew_pin)
-        VALUES (${headers.username}, ${headers.password_hash}, ${headers.company_name}, ${headers.email}, ${headers.role}, ${headers.crew_pin})
-        RETURNING id, username, company_name, role, crew_pin
-    `;
-    const user = users[0];
-
-    // Initialize Settings (mimic setupUserSheetSchema)
-    // We insert default rows into 'settings' table? 
-    // Or we just wait for sync? 
-    // Replicating 'setupUserSheetSchema' defaults:
-    const initialProfile = {
-        companyName, crewAccessPin: crewPin, email: email || "",
-        phone: "", addressLine1: "", addressLine2: "", city: "", state: "", zip: "", website: "", logoUrl: ""
-    };
-
-    const defaults = [
-        { key: 'companyProfile', value: initialProfile },
-        { key: 'warehouse_counts', value: { openCellSets: 0, closedCellSets: 0 } },
-        { key: 'lifetime_usage', value: { openCell: 0, closedCell: 0 } },
-        { key: 'costs', value: { openCell: 2000, closedCell: 2600, laborRate: 85 } },
-        { key: 'yields', value: { openCell: 16000, closedCell: 4000 } }
-    ];
-
-    for (const d of defaults) {
-        await sql`
-            INSERT INTO settings (company_id, key, value)
-            VALUES (${user.id}, ${d.key}, ${JSON.stringify(d.value)}) -- Note: postgres.js handles JSON automatically usually, but let's be safe. Wait, database/client uses @netlify/neon.
-            -- If using 'neon' driver, passing object to JSONB column usually works. 
-            -- But let's check if we need JSON.stringify. The driver might handle it. 
-            -- Safest is passing the object if the column is JSONB.
-        `;
-    }
-    // Actually, let's fix the above loop in a second edit or refine logic.
-    // For now, let's finish the return structure.
-
-    return {
-        username: user.username,
-        companyName: user.company_name,
-        spreadsheetId: "NEON_DB", // Placeholder for compatibility
-        folderId: "NEON_DRIVE", // Placeholder
-        role: user.role,
-        token: generateToken(user.username, user.role),
-        crewPin: user.crew_pin
-    };
-}
-
-async function handleLogin(p: any) {
-    const { username, password } = p;
-    const users = await sql`SELECT * FROM users WHERE username = ${username}`;
-    if (users.length === 0) throw new Error("User not found.");
-
-    const user = users[0];
-    if (user.password_hash !== hashPassword(password)) throw new Error("Incorrect password.");
-
-    return {
-        username: user.username,
-        companyName: user.company_name,
-        spreadsheetId: "NEON_DB",
-        folderId: "NEON_DRIVE",
-        role: user.role,
-        token: generateToken(user.username, user.role)
-    };
-}
-
-async function handleSyncDown(payload: any, token: string) {
-    const user = await getUserFromToken(token);
-    const companyId = user.id;
+async function handleSyncDown(sessionToken: string) {
+    const user = await getUserFromSession(sessionToken);
+    if (!user) throw new Error("Unauthorized");
+    
+    const companyId = user.company_id;
 
     // Fetch all data in parallel
     const [settingsRows, invRows, estRows, custRows, logRows] = await Promise.all([
@@ -313,9 +219,11 @@ async function handleSyncDown(payload: any, token: string) {
     };
 }
 
-async function handleSyncUp(payload: any, token: string) {
-    const user = await getUserFromToken(token);
-    const companyId = user.id;
+async function handleSyncUp(payload: any, sessionToken: string) {
+    const user = await getUserFromSession(sessionToken);
+    if (!user) throw new Error("Unauthorized");
+    
+    const companyId = user.company_id;
     const { state } = payload;
 
     // 1. Settings (Profile, Costs, etc)
@@ -455,46 +363,24 @@ export const config = {
     path: "/api/*"
 };
 
-async function handleCrewLogin(p: any) {
-    const { username, pin } = p;
-    // For now, checks hardcoded PIN or user field crew_pin
-    // If username provided, look up user
-    // If just generic crew login, maybe simple check
 
-    // Strategy: Look up user by username (owner account) and check if pin matches their crew_pin
-    // OR if we have crew accounts.
-    // Based on schemas, it seems 'users' table has 'crew_pin'. 
-
-    const users = await sql`SELECT * FROM users WHERE username = ${username}`;
-    if (users.length === 0) throw new Error("Company not found");
-    const user = users[0];
-
-    if (user.crew_pin !== pin) throw new Error("Invalid Crew PIN");
-
-    // Return session as crew
-    return {
-        username: user.username,
-        companyName: user.company_name,
-        role: 'crew',
-        token: generateToken(user.username, 'crew'), // Limited scope token
-        spreadsheetId: "NEON_DB",
-        folderId: "NEON_DRIVE"
-    };
-}
-
-async function handleDeleteEstimate(p: any, token: string) {
-    const user = await getUserFromToken(token);
+async function handleDeleteEstimate(p: any, sessionToken: string) {
+    const user = await getUserFromSession(sessionToken);
+    if (!user) throw new Error("Unauthorized");
+    
     const { estimateId } = p;
     // Verify ownership
-    await sql`DELETE FROM estimates WHERE id = ${estimateId} AND company_id = ${user.id}`;
+    await sql`DELETE FROM estimates WHERE id = ${estimateId} AND company_id = ${user.company_id}`;
 }
 
-async function handleMarkJobPaid(p: any, token: string) {
-    const user = await getUserFromToken(token);
+async function handleMarkJobPaid(p: any, sessionToken: string) {
+    const user = await getUserFromSession(sessionToken);
+    if (!user) throw new Error("Unauthorized");
+    
     const { estimateId } = p;
 
     // Fetch estimate
-    const rows = await sql`SELECT * FROM estimates WHERE id = ${estimateId} AND company_id = ${user.id}`;
+    const rows = await sql`SELECT * FROM estimates WHERE id = ${estimateId} AND company_id = ${user.company_id}`;
     if (rows.length === 0) throw new Error("Estimate not found");
 
     let est = rows[0];
@@ -502,11 +388,7 @@ async function handleMarkJobPaid(p: any, token: string) {
 
     // Update status
     data.status = 'Paid';
-    // Add financials if needed (mocking logic from GAS)
-    // For P&L, we might need cost data. 
-    // Let's assume P&L calculation happens here or we just save the status.
 
-    // Refetched to ensure we have latest
     await sql`
         UPDATE estimates 
         SET status = 'Paid', 
@@ -518,17 +400,21 @@ async function handleMarkJobPaid(p: any, token: string) {
     return { success: true, estimate: { ...data, id: estimateId, status: 'Paid' } };
 }
 
-async function handleCreateWorkOrder(p: any, token: string) {
-    // Stub - since we are migrating away from Sheets, we might not truly create a Sheet.
-    // Or we returns a placeholder URL.
+async function handleCreateWorkOrder(p: any, sessionToken: string) {
+    const user = await getUserFromSession(sessionToken);
+    if (!user) throw new Error("Unauthorized");
+    
+    // Placeholder for work order creation
     return { url: "https://placeholder-work-order-url.com" };
 }
 
-async function handleCompleteJob(p: any, token: string) {
-    const user = await getUserFromToken(token);
+async function handleCompleteJob(p: any, sessionToken: string) {
+    const user = await getUserFromSession(sessionToken);
+    if (!user) throw new Error("Unauthorized");
+    
     const { estimateId, actuals } = p;
 
-    const rows = await sql`SELECT * FROM estimates WHERE id = ${estimateId} AND company_id = ${user.id}`;
+    const rows = await sql`SELECT * FROM estimates WHERE id = ${estimateId} AND company_id = ${user.company_id}`;
     if (rows.length === 0) throw new Error("Estimate not found");
 
     let est = rows[0];
