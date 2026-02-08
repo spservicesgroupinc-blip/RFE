@@ -1,6 +1,7 @@
 
-import { GOOGLE_SCRIPT_URL, API_CONFIG } from '../constants';
+import { API_CONFIG } from '../constants';
 import { CalculatorState, EstimateRecord, UserSession } from '../types';
+import { authClient } from '../lib/auth-client';
 
 interface ApiResponse {
     status: 'success' | 'error';
@@ -9,35 +10,25 @@ interface ApiResponse {
 }
 
 /**
- * Helper to check if API is configured
- */
-const isApiConfigured = () => {
-    if (API_CONFIG.PROVIDER === 'NEON') {
-        return !!API_CONFIG.NEON_URL;
-    }
-    return GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('PLACEHOLDER');
-};
-
-/**
- * Helper for making robust fetch requests to GAS or Neon
- * Includes retry logic for cold starts
+ * Helper for making robust fetch requests to Neon backend
+ * Includes retry logic and automatic session token injection
  */
 const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
-    if (!isApiConfigured()) {
-        return { status: 'error', message: 'API Config Missing' };
+    if (!API_CONFIG.NEON_URL) {
+        return { status: 'error', message: 'API not configured' };
     }
 
-    // Determine Endpoint
-    const url = API_CONFIG.PROVIDER === 'NEON' ? API_CONFIG.NEON_URL : GOOGLE_SCRIPT_URL;
-
     try {
-        const response = await fetch(url, {
+        // Get current session token from Neon Auth
+        const session = authClient.useSession?.() ?? { data: null };
+        const sessionToken = session.data?.session?.token;
+
+        const response = await fetch(API_CONFIG.NEON_URL, {
             method: 'POST',
             mode: 'cors',
             headers: {
-                // strict text/plain for GAS to avoid CORS preflight (OPTIONS)
-                // standard application/json for Neon/Node
-                "Content-Type": API_CONFIG.PROVIDER === 'NEON' ? "application/json" : "text/plain;charset=utf-8",
+                "Content-Type": "application/json",
+                ...(sessionToken && { "Authorization": `Bearer ${sessionToken}` })
             },
             body: JSON.stringify(payload)
         });
@@ -50,7 +41,7 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
         return result;
     } catch (error: any) {
         if (retries > 0) {
-            console.warn(`API Request Failed (${API_CONFIG.PROVIDER}), retrying... (${retries} left)`);
+            console.warn(`API Request Failed, retrying... (${retries} left)`);
             await new Promise(res => setTimeout(res, 1000)); // Wait 1s before retry
             return apiRequest(payload, retries - 1);
         }
@@ -60,10 +51,10 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
 };
 
 /**
- * Fetches the full application state from Google Sheets
+ * Fetches the full application state from Neon database
  */
-export const syncDown = async (spreadsheetId: string, token?: string): Promise<Partial<CalculatorState> | null> => {
-    const result = await apiRequest({ action: 'SYNC_DOWN', payload: { spreadsheetId, token } });
+export const syncDown = async (): Promise<Partial<CalculatorState> | null> => {
+    const result = await apiRequest({ action: 'SYNC_DOWN', payload: {} });
 
     if (result.status === 'success') {
         return result.data;
@@ -74,88 +65,61 @@ export const syncDown = async (spreadsheetId: string, token?: string): Promise<P
 };
 
 /**
- * Pushes the full application state to Google Sheets
+ * Pushes the full application state to Neon database
  */
-export const syncUp = async (state: CalculatorState, spreadsheetId: string, token?: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'SYNC_UP', payload: { state, spreadsheetId, token } });
+export const syncUp = async (state: CalculatorState): Promise<boolean> => {
+    const result = await apiRequest({ action: 'SYNC_UP', payload: { state } });
     return result.status === 'success';
 };
 
 /**
  * Marks job as paid and triggers P&L calculation on backend
  */
-export const markJobPaid = async (estimateId: string, spreadsheetId: string, token?: string): Promise<{ success: boolean, estimate?: EstimateRecord }> => {
-    const result = await apiRequest({ action: 'MARK_JOB_PAID', payload: { estimateId, spreadsheetId, token } });
+export const markJobPaid = async (estimateId: string): Promise<{ success: boolean, estimate?: EstimateRecord }> => {
+    const result = await apiRequest({ action: 'MARK_JOB_PAID', payload: { estimateId } });
     return { success: result.status === 'success', estimate: result.data?.estimate };
 };
 
 /**
- * Creates a standalone Work Order Google Sheet
+ * Creates a work order record in database
  */
-export const createWorkOrderSheet = async (estimateData: EstimateRecord, folderId: string | undefined, spreadsheetId: string, token?: string): Promise<string | null> => {
-    const result = await apiRequest({ action: 'CREATE_WORK_ORDER', payload: { estimateData, folderId, spreadsheetId, token } });
+export const createWorkOrderSheet = async (estimateData: EstimateRecord): Promise<string | null> => {
+    const result = await apiRequest({ action: 'CREATE_WORK_ORDER', payload: { estimateData } });
     if (result.status === 'success') return result.data.url;
     console.error("Create WO Error:", result.message);
     return null;
 };
 
 /**
- * Logs crew time to the Work Order Sheet
+ * Logs crew time for a work order
  */
-export const logCrewTime = async (workOrderUrl: string, startTime: string, endTime: string | null, user: string, token?: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'LOG_TIME', payload: { workOrderUrl, startTime, endTime, user, token } });
+export const logCrewTime = async (workOrderUrl: string, startTime: string, endTime: string | null, user: string): Promise<boolean> => {
+    const result = await apiRequest({ action: 'LOG_TIME', payload: { workOrderUrl, startTime, endTime, user } });
     return result.status === 'success';
 };
 
 /**
  * Marks job as complete and syncs inventory
  */
-export const completeJob = async (estimateId: string, actuals: any, spreadsheetId: string, token?: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'COMPLETE_JOB', payload: { estimateId, actuals, spreadsheetId, token } });
+export const completeJob = async (estimateId: string, actuals: any): Promise<boolean> => {
+    const result = await apiRequest({ action: 'COMPLETE_JOB', payload: { estimateId, actuals } });
     return result.status === 'success';
 };
 
 /**
- * Deletes an estimate and potentially its associated files
+ * Deletes an estimate from database
  */
-export const deleteEstimate = async (estimateId: string, spreadsheetId: string, token?: string): Promise<boolean> => {
-    const result = await apiRequest({ action: 'DELETE_ESTIMATE', payload: { estimateId, spreadsheetId, token } });
+export const deleteEstimate = async (estimateId: string): Promise<boolean> => {
+    const result = await apiRequest({ action: 'DELETE_ESTIMATE', payload: { estimateId } });
     return result.status === 'success';
 };
 
 /**
- * Uploads a PDF to Google Drive
+ * Uploads a PDF to storage (placeholder for future implementation)
  */
-export const savePdfToDrive = async (fileName: string, base64Data: string, estimateId: string | undefined, spreadsheetId: string, folderId?: string, token?: string) => {
-    const result = await apiRequest({ action: 'SAVE_PDF', payload: { fileName, base64Data, estimateId, spreadsheetId, folderId, token } });
+export const savePdfToDrive = async (fileName: string, base64Data: string, estimateId: string | undefined) => {
+    const result = await apiRequest({ action: 'SAVE_PDF', payload: { fileName, base64Data, estimateId } });
     return result.status === 'success' ? result.data.url : null;
-};
-
-/**
- * Authenticates user against backend
- */
-export const loginUser = async (username: string, password: string): Promise<UserSession | null> => {
-    const result = await apiRequest({ action: 'LOGIN', payload: { username, password } });
-    if (result.status === 'success') return result.data;
-    throw new Error(result.message || "Login failed");
-};
-
-/**
- * Authenticates crew member using PIN
- */
-export const loginCrew = async (username: string, pin: string): Promise<UserSession | null> => {
-    const result = await apiRequest({ action: 'CREW_LOGIN', payload: { username, pin } });
-    if (result.status === 'success') return result.data;
-    throw new Error(result.message || "Crew Login failed");
-};
-
-/**
- * Creates a new company account
- */
-export const signupUser = async (username: string, password: string, companyName: string): Promise<UserSession | null> => {
-    const result = await apiRequest({ action: 'SIGNUP', payload: { username, password, companyName } });
-    if (result.status === 'success') return result.data;
-    throw new Error(result.message || "Signup failed");
 };
 
 /**
