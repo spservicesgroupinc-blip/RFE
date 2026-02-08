@@ -1,20 +1,13 @@
-import { neon } from '@neondatabase/serverless';
+import { neon } from '@netlify/neon';
 
 /**
  * Backend database client for server-side operations
  * This should only be used in server-side code (e.g., API routes, server actions)
- * Never expose the DATABASE_URL to the client
+ * Uses Netlify's Neon integration which automatically uses NETLIFY_DATABASE_URL
  */
 
-// Get database URL from environment
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) {
-  throw new Error('DATABASE_URL environment variable is not set');
-}
-
-// Create Neon serverless client
-export const sql = neon(databaseUrl);
+// Create Neon serverless client - automatically uses NETLIFY_DATABASE_URL
+export const sql = neon();
 
 /**
  * Helper function to get user by session token

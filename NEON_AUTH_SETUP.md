@@ -42,14 +42,15 @@ Create a `.env` file in the root of your project (use `.env.example` as a templa
 
 ```bash
 # Database connection (for backend/server operations only)
-DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
+# When using Netlify's Neon integration, this is automatically populated
+NETLIFY_DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
 
 # Neon Auth URL (from Step 1)
 VITE_NEON_AUTH_URL=https://ep-xxx.neonauth.c-2.us-east-2.aws.neon.build/dbname/auth
 ```
 
 **Important Notes:**
-- `DATABASE_URL` is for server-side operations only - never expose this to the client
+- `NETLIFY_DATABASE_URL` is for server-side operations only - never expose this to the client
 - `VITE_NEON_AUTH_URL` is safe to expose to the client as it's designed for frontend auth
 
 ## Step 4: Install Dependencies
@@ -57,7 +58,7 @@ VITE_NEON_AUTH_URL=https://ep-xxx.neonauth.c-2.us-east-2.aws.neon.build/dbname/a
 The required packages should already be installed, but if needed:
 
 ```bash
-npm install @neondatabase/auth @neondatabase/serverless react-router-dom
+npm install @neondatabase/auth @netlify/neon react-router-dom
 ```
 
 **Note about @neondatabase/auth version**: 
