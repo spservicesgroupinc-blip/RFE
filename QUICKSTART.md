@@ -1,5 +1,7 @@
 # Quick Start: Neon Auth Setup
 
+**✅ Migration Complete!** The RFE application has been successfully migrated to Neon Serverless PostgreSQL with Neon Auth. See [NEON_MIGRATION_COMPLETE.md](./NEON_MIGRATION_COMPLETE.md) for details.
+
 This is a quick reference for setting up Neon Auth in the RFE application. For detailed instructions, see [NEON_AUTH_SETUP.md](./NEON_AUTH_SETUP.md).
 
 ## Prerequisites
