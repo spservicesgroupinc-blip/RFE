@@ -38,9 +38,11 @@ console.log('\n2. Testing database connection with neon()...');
 
 try {
   // The key feature: neon() with no arguments automatically uses NETLIFY_DATABASE_URL
-  const sql = netlifyDbUrl ? neon(netlifyDbUrl) : neon(oldDbUrl!);
+  // For backward compatibility during migration, we pass the URL explicitly
+  const sql = neon(DATABASE_URL);
   
-  console.log('   ℹ️  Note: In production, neon() with no arguments will automatically use NETLIFY_DATABASE_URL');
+  console.log('   ℹ️  Using explicit connection string for backward compatibility');
+  console.log('   ℹ️  In production with Netlify-Neon integration, use: const sql = neon()');
   
   // Test query
   const result = await sql`SELECT NOW() as current_time, version() as pg_version`;
@@ -63,7 +65,8 @@ try {
 console.log('\n3. Testing parameterized query...');
 
 try {
-  const sql = netlifyDbUrl ? neon(netlifyDbUrl) : neon(oldDbUrl!);
+  // Reuse the same sql instance
+  const sql = neon(DATABASE_URL);
   
   // Simulating the pattern from the problem statement:
   // const [post] = await sql`SELECT * FROM posts WHERE id = ${postId}`;

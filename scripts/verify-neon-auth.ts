@@ -34,7 +34,8 @@ console.log('   ✅ VITE_NEON_AUTH_URL is set');
 
 // Verify database connection
 console.log('\n2. Testing database connection...');
-const sql = DATABASE_URL ? neon(DATABASE_URL) : neon();
+// Use explicit connection string for backward compatibility during migration
+const sql = neon(DATABASE_URL);
 
 try {
   const result = await sql`SELECT version()`;
