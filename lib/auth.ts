@@ -9,7 +9,7 @@ type AuthClient = ReturnType<typeof createAuthClient>;
 
 // Create auth client only if URL is available
 // If missing, index.tsx will display ConfigurationError
-export const authClient: AuthClient | null = authUrl 
+export const authClient: AuthClient | null = authUrl
   ? createAuthClient(authUrl, {
       adapter: BetterAuthReactAdapter(),
     })
