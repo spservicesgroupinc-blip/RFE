@@ -10,7 +10,6 @@
     "verify-auth": "tsx scripts/verify-neon-auth.ts"
   },
   "dependencies": {
-    "@neondatabase/auth": "^0.1.0-beta.21",
     "@neondatabase/neon-js": "^0.2.0-beta.1",
     "@neondatabase/serverless": "^1.0.2",
     "@netlify/neon": "^0.1.2",
