@@ -9,9 +9,13 @@ import { authClient } from './lib/auth';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <NeonAuthUIProvider authClient={authClient}>
+      {authClient ? (
+        <NeonAuthUIProvider authClient={authClient}>
+          <App />
+        </NeonAuthUIProvider>
+      ) : (
         <App />
-      </NeonAuthUIProvider>
+      )}
     </BrowserRouter>
   </StrictMode>
 );
