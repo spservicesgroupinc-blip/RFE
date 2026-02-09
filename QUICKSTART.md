@@ -29,7 +29,7 @@ cp .env.example .env
 Edit `.env` and add your credentials:
 
 ```bash
-DATABASE_URL=your-neon-database-url
+NETLIFY_DATABASE_URL=your-neon-database-url
 VITE_NEON_AUTH_URL=your-neon-auth-url
 ```
 
@@ -37,7 +37,7 @@ VITE_NEON_AUTH_URL=your-neon-auth-url
 
 ```bash
 # Option 1: Using psql
-psql "$DATABASE_URL" -f database/schema-with-auth.sql
+psql "$NETLIFY_DATABASE_URL" -f database/schema-with-auth.sql
 
 # Option 2: Using any PostgreSQL client
 # Connect to your database and run the schema-with-auth.sql file

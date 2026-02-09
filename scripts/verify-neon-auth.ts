@@ -8,12 +8,12 @@
  */
 
 import dotenv from 'dotenv';
-import { neon } from '@neondatabase/serverless';
+import { neon } from '@netlify/neon';
 
 // Load environment variables
 dotenv.config();
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const DATABASE_URL = process.env.NETLIFY_DATABASE_URL || process.env.DATABASE_URL;
 const VITE_NEON_AUTH_URL = process.env.VITE_NEON_AUTH_URL;
 
 console.log('🔍 Verifying Neon Auth Setup...\n');
@@ -21,10 +21,10 @@ console.log('🔍 Verifying Neon Auth Setup...\n');
 // Check environment variables
 console.log('1. Checking environment variables...');
 if (!DATABASE_URL) {
-  console.error('   ❌ DATABASE_URL is not set in .env');
+  console.error('   ❌ NETLIFY_DATABASE_URL (or DATABASE_URL) is not set in .env');
   process.exit(1);
 }
-console.log('   ✅ DATABASE_URL is set');
+console.log('   ✅ Database URL is set');
 
 if (!VITE_NEON_AUTH_URL) {
   console.error('   ❌ VITE_NEON_AUTH_URL is not set in .env');
@@ -34,6 +34,7 @@ console.log('   ✅ VITE_NEON_AUTH_URL is set');
 
 // Verify database connection
 console.log('\n2. Testing database connection...');
+// Use explicit connection string for backward compatibility during migration
 const sql = neon(DATABASE_URL);
 
 try {
@@ -118,7 +119,7 @@ if (VITE_NEON_AUTH_URL.includes('neonauth') && VITE_NEON_AUTH_URL.endsWith('/aut
 console.log('\n✅ Neon Auth setup verification complete!');
 console.log('\nNext steps:');
 console.log('1. If any auth tables are missing, run the migration:');
-console.log('   psql "$DATABASE_URL" -f database/schema-with-auth.sql');
+console.log('   psql "$NETLIFY_DATABASE_URL" -f database/schema-with-auth.sql');
 console.log('2. Start the dev server: npm run dev');
 console.log('3. Navigate to http://localhost:5173/auth/sign-up to create an account');
 console.log('\nFor more information, see NEON_AUTH_SETUP.md');

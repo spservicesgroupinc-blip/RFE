@@ -5,7 +5,7 @@ A comprehensive React-based application for spray foam contractors to manage est
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite
-- **Database**: Neon Serverless PostgreSQL
+- **Database**: Neon Serverless PostgreSQL (`@netlify/neon`)
 - **Authentication**: Neon Auth
 - **Deployment**: Netlify
 - **Styling**: Tailwind CSS
@@ -29,7 +29,7 @@ A comprehensive React-based application for spray foam contractors to manage est
 
 3. **Run Database Migration**
    ```bash
-   psql "$DATABASE_URL" -f database/schema-with-auth.sql
+   psql "$NETLIFY_DATABASE_URL" -f database/schema-with-auth.sql
    ```
 
 4. **Start Development Server**
@@ -70,7 +70,7 @@ npm run preview  # Preview production build
 ## Environment Variables
 
 Required environment variables:
-- `DATABASE_URL` - Neon pooled connection string
+- `NETLIFY_DATABASE_URL` - Neon pooled connection string (automatically set by Netlify-Neon integration)
 - `VITE_NEON_AUTH_URL` - Neon Auth URL
 
 See `.env.example` for details.

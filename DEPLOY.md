@@ -26,7 +26,7 @@ psql "postgresql://user:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=requ
 **Getting your connection strings:**
 1. Go to your Neon Project Dashboard
 2. Navigate to the "Connection Details" section
-3. Copy the **Pooled connection** string (for `DATABASE_URL`)
+3. Copy the **Pooled connection** string (for `NETLIFY_DATABASE_URL`)
 4. Copy the **Direct connection** string (for running migrations)
 
 ### Step 2: Push to GitHub
@@ -51,11 +51,12 @@ Go to **Site Settings > Environment Variables** and add the following:
 
 #### Required Variables:
 
-1. **DATABASE_URL**
-   - **Key**: `DATABASE_URL`
+1. **NETLIFY_DATABASE_URL**
+   - **Key**: `NETLIFY_DATABASE_URL`
    - **Value**: Your **pooled** connection string
    - **Example**: `postgresql://user:password@ep-xxx-pooler.region.aws.neon.tech:6543/dbname?sslmode=require`
    - **Note**: Must use the **pooled** connection (port 6543) for best performance
+   - **Note**: When using Netlify's Neon integration, this is automatically populated
 
 2. **VITE_NEON_AUTH_URL**
    - **Key**: `VITE_NEON_AUTH_URL`
@@ -94,7 +95,7 @@ After deployment, verify:
 ### Database Connection Error
 **Issue**: Application shows database connection errors.
 **Solution**: 
-- Verify `DATABASE_URL` is set correctly in Netlify environment variables
+- Verify `NETLIFY_DATABASE_URL` is set correctly in Netlify environment variables
 - Ensure you're using the **pooled** connection string (port 6543)
 - Check that the connection string includes `?sslmode=require`
 
@@ -124,7 +125,7 @@ After deployment, verify:
 
 | Variable | Required | Example | Notes |
 |----------|----------|---------|-------|
-| `DATABASE_URL` | Yes | `postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech:6543/db?sslmode=require` | Pooled connection (port 6543) |
+| `NETLIFY_DATABASE_URL` | Yes | `postgresql://user:pass@ep-xxx-pooler.region.aws.neon.tech:6543/db?sslmode=require` | Pooled connection (port 6543). Auto-populated by Netlify-Neon integration |
 | `VITE_NEON_AUTH_URL` | Yes | `https://ep-xxx.neonauth.c-2.us-east-2.aws.neon.build/db/auth` | From Neon Auth tab |
 
 ## Additional Resources

@@ -70,7 +70,8 @@ RFE is a comprehensive spray foam estimation and project management application.
 - Use **pooled connection** (port 6543) for application queries
 - Use **direct connection** (port 5432) for migrations only
 - Database is multi-tenant with `company_id` for data isolation
-- Connection string stored in `DATABASE_URL` environment variable
+- Connection string stored in `NETLIFY_DATABASE_URL` environment variable
+- Uses `@netlify/neon` package for database operations
 
 ### Authentication
 - Use `@neondatabase/auth` for all authentication
@@ -95,7 +96,7 @@ Core tables:
 
 ### Required Environment Variables
 ```bash
-DATABASE_URL=          # Neon database connection (pooled endpoint, port 6543)
+NETLIFY_DATABASE_URL=  # Neon database connection (pooled endpoint, port 6543)
 VITE_NEON_AUTH_URL=    # Neon Auth endpoint URL
 ```
 
@@ -163,7 +164,7 @@ Before adding any new dependency:
 
 ### Key Dependencies
 - **@neondatabase/auth**: Authentication (do not replace)
-- **@neondatabase/serverless**: Database client (do not replace)
+- **@netlify/neon**: Database client with Netlify integration (do not replace)
 - **React Router DOM**: Routing (v7+)
 - **jsPDF**: PDF generation
 - **Lucide React**: Icons
