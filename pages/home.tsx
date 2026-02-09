@@ -3,7 +3,9 @@ import SprayFoamCalculator from '../components/SprayFoamCalculator';
 import { CalculatorProvider } from '../context/CalculatorContext';
 
 export function Home() {
-  const session = authClient.useSession();
+  // authClient is guaranteed to be non-null here because index.tsx
+  // renders ConfigurationError instead of App when authClient is null
+  const session = authClient!.useSession();
 
   if (session.isPending) {
     return (

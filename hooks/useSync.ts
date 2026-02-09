@@ -9,7 +9,8 @@ export const useSync = () => {
   const { session, appData, ui } = state;
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSyncedStateRef = useRef<string>("");
-  const neonSession = authClient.useSession();
+  // authClient is guaranteed non-null as hooks are only called in authenticated context
+  const neonSession = authClient!.useSession();
 
   // 1. SYNC NEON AUTH SESSION TO LOCAL STATE
   useEffect(() => {

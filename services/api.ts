@@ -25,9 +25,12 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
         // The authClient stores the session internally and we can access it
         let sessionToken: string | undefined;
         try {
-            // Try to access session from authClient internal state
-            // This is a workaround since we can't use hooks in service functions
-            const authState = (authClient as any)._internal?.session?.get?.();
+            // WORKAROUND: Accessing internal state since we can't use hooks in service functions
+            // The public authClient.useSession() is a React hook and can't be called outside components
+            // This accesses the internal session storage to get the current token for API requests
+            // NOTE: This relies on undocumented internal API and may break with library updates
+            // authClient is guaranteed non-null as this only runs in authenticated context
+            const authState = (authClient! as any)._internal?.session?.get?.();
             sessionToken = authState?.session?.token;
         } catch (e) {
             console.warn('Could not access auth session token', e);

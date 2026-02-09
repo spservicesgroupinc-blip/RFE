@@ -40,8 +40,11 @@ A comprehensive React-based application for spray foam contractors to manage est
 
 ### Deployment
 
-For complete deployment instructions to Netlify:
-- 📚 See [DEPLOY.md](./DEPLOY.md) - Step-by-step deployment guide
+**⚠️ IMPORTANT**: Before deploying to Netlify, you MUST configure environment variables or you'll get a blank screen!
+
+For complete deployment instructions:
+- 🔴 **[NETLIFY_ENV_SETUP.md](./NETLIFY_ENV_SETUP.md)** - CRITICAL: Set up environment variables first!
+- 📚 [DEPLOY.md](./DEPLOY.md) - Complete step-by-step deployment guide
 
 ### Documentation
 

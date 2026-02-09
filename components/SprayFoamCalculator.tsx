@@ -103,7 +103,9 @@ const SprayFoamCalculator: React.FC = () => {
 
   const handleLogout = async () => {
     // Sign out from Neon Auth
-    await authClient.signOut();
+    // authClient is guaranteed to be non-null here because this component
+    // is only rendered when authClient exists (checked in index.tsx)
+    await authClient!.signOut();
     // Clear local state
     dispatch({ type: 'LOGOUT' });
   };

@@ -107,6 +107,19 @@ After deployment, verify:
 - Check that database migration was run successfully (auth tables must exist)
 - Redeploy after adding environment variables (Netlify requires rebuild)
 
+### Blank Screen on Deployment
+**Issue**: Application shows a blank screen after deployment.
+**Solution**:
+- **Most Common Cause**: Missing `VITE_NEON_AUTH_URL` environment variable
+- Go to Netlify Dashboard → Site Settings → Environment Variables
+- Verify `VITE_NEON_AUTH_URL` is set correctly
+- If missing, add the variable and trigger a new deployment
+- **Note**: Environment variables must be set **before** the build runs (not after)
+- If the variable is set but the screen is still blank:
+  - Check browser console for JavaScript errors
+  - Verify the build logs show the environment variable was available during build
+  - The app will show a helpful error message if `VITE_NEON_AUTH_URL` is missing
+
 ### Build Failures
 **Issue**: Build fails during deployment.
 **Solution**:
