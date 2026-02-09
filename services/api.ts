@@ -27,7 +27,8 @@ const apiRequest = async (payload: any, retries = 2): Promise<ApiResponse> => {
         try {
             // Try to access session from authClient internal state
             // This is a workaround since we can't use hooks in service functions
-            const authState = (authClient as any)._internal?.session?.get?.();
+            // authClient is guaranteed non-null as this only runs in authenticated context
+            const authState = (authClient! as any)._internal?.session?.get?.();
             sessionToken = authState?.session?.token;
         } catch (e) {
             console.warn('Could not access auth session token', e);

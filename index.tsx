@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { authClient } from './lib/auth';
+import { ConfigurationError } from './components/ConfigurationError';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -14,7 +15,7 @@ createRoot(document.getElementById('root')!).render(
           <App />
         </NeonAuthUIProvider>
       ) : (
-        <App />
+        <ConfigurationError />
       )}
     </BrowserRouter>
   </StrictMode>
