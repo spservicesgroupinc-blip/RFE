@@ -58,11 +58,11 @@ VITE_NEON_AUTH_URL=https://ep-xxx.neonauth.c-2.us-east-2.aws.neon.build/dbname/a
 The required packages should already be installed, but if needed:
 
 ```bash
-npm install @neondatabase/auth @netlify/neon react-router-dom
+npm install @neondatabase/neon-js react-router-dom
 ```
 
-**Note about @neondatabase/auth version**: 
-This project uses a beta version of @neondatabase/auth (v0.1.0-beta.21). This is the current stable beta release. While Neon Auth is in beta, it's production-ready and actively maintained. Check the [Neon Auth documentation](https://neon.com/docs/auth) for the latest version information.
+**Note about @neondatabase/neon-js**: 
+This project uses the unified `@neondatabase/neon-js` SDK (v0.2.0-beta.1) which provides a streamlined interface for Neon Auth. This package re-exports from `@neondatabase/auth` and provides additional utilities. While in beta, it's production-ready and actively maintained. Check the [Neon Auth documentation](https://neon.com/docs/auth) for the latest version information.
 
 ## Step 5: Run the Application
 
@@ -103,16 +103,19 @@ The main application content is protected and requires authentication:
 ```
 /
 ├── lib/
-│   ├── auth-client.ts         # Auth client configuration
+│   ├── auth.ts                 # Auth client configuration (neon-js)
 │   └── backend/
 │       └── db.ts               # Backend database utilities
+├── pages/
+│   ├── home.tsx                # Home page (protected)
+│   ├── auth.tsx                # Authentication page
+│   └── account.tsx             # Account management page
 ├── database/
 │   ├── schema.sql              # Original schema
 │   ├── schema-with-auth.sql    # Schema with Neon Auth tables
 │   └── client.ts               # Database client
-├── providers.tsx               # Auth provider wrapper
 ├── App.tsx                     # Main app with routes
-├── index.tsx                   # Entry point with BrowserRouter
+├── index.tsx                   # Entry point with NeonAuthUIProvider
 └── .env                        # Environment variables (create from .env.example)
 ```
 
@@ -121,7 +124,7 @@ The main application content is protected and requires authentication:
 ### Get Current User Session
 
 ```typescript
-import { authClient } from './lib/auth-client';
+import { authClient } from './lib/auth';
 
 function MyComponent() {
   const session = authClient.useSession();
@@ -136,7 +139,7 @@ function MyComponent() {
 ### Sign Out
 
 ```typescript
-import { authClient } from './lib/auth-client';
+import { authClient } from './lib/auth';
 
 async function handleSignOut() {
   await authClient.signOut();
@@ -147,7 +150,7 @@ async function handleSignOut() {
 ### Use Built-in UI Components
 
 ```typescript
-import { SignedIn, SignedOut, UserButton } from "@neondatabase/auth/react/ui";
+import { SignedIn, SignedOut, UserButton } from "@neondatabase/neon-js/auth/react/ui";
 
 function Navbar() {
   return (

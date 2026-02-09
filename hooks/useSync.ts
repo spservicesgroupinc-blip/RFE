@@ -2,7 +2,7 @@
 import { useEffect, useRef } from 'react';
 import { useCalculator, DEFAULT_STATE } from '../context/CalculatorContext';
 import { syncUp, syncDown } from '../services/api';
-import { authClient } from '../lib/auth-client';
+import { authClient } from '../lib/auth';
 
 export const useSync = () => {
   const { state, dispatch } = useCalculator();
