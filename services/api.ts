@@ -1,7 +1,7 @@
 
 import { API_CONFIG } from '../constants';
 import { CalculatorState, EstimateRecord, UserSession } from '../types';
-import { authClient } from '../lib/auth-client';
+import { authClient } from '../lib/auth';
 
 interface ApiResponse {
     status: 'success' | 'error';

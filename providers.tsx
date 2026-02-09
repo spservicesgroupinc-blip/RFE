@@ -1,7 +1,7 @@
 import React, { type ReactNode } from "react";
-import { NeonAuthUIProvider } from "@neondatabase/auth/react/ui";
+import { NeonAuthUIProvider } from "@neondatabase/neon-js/auth/react/ui";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { authClient } from "./lib/auth-client";
+import { authClient } from "./lib/auth";
 
 // Adapter for react-router-dom Link
 function Link({

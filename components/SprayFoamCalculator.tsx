@@ -15,7 +15,7 @@ import { useEstimates } from '../hooks/useEstimates';
 import { calculateResults } from '../utils/calculatorHelpers';
 import { generateEstimatePDF, generateDocumentPDF, generateWorkOrderPDF } from '../utils/pdfGenerator';
 import { syncUp } from '../services/api';
-import { authClient } from '../lib/auth-client';
+import { authClient } from '../lib/auth';
 
 import LoginPage from './LoginPage';
 import { LandingPage } from './LandingPage';
